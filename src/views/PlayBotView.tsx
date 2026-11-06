@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useRef, useMemo, useEffect } from 'react';
 import { Chess, Square, Move } from 'chess.js';
 import {
   Bot,
@@ -10,6 +10,7 @@ import {
   Trophy,
   RefreshCw,
   MessageSquare,
+  History,
 } from 'lucide-react';
 import { BotPersonality } from '../types/chess';
 import { BOTS } from '../data/bots';
@@ -18,17 +19,45 @@ import { EvaluationBar } from '../components/EvaluationBar';
 import { findBotMove, getEvalBarScore } from '../engine/botEngine';
 import { useProgress } from '../context/ProgressContext';
 import { sounds } from '../engine/sound';
+import { useGames, newGameId } from '../context/GamesContext';
+import { GameResult } from '../types/chess';
 
-export const PlayBotView: React.FC = () => {
+function buildGame(moves: string[]): Chess {
+  const g = new Chess();
+  for (const m of moves) g.move(m);
+  return g;
+}
+
+interface PlayBotViewProps {
+  onReviewGame?: (gameId: string) => void;
+}
+
+export const PlayBotView: React.FC<PlayBotViewProps> = ({ onReviewGame }) => {
   const { progress, recordBotGame } = useProgress();
+  const { upsertGame } = useGames();
 
   const [selectedBot, setSelectedBot] = useState<BotPersonality>(BOTS[0]);
-  const [game, setGame] = useState<Chess>(new Chess());
+  // The SAN move list is the single source of truth; the Chess instance is derived from it
+  // (rebuilding from a FEN would lose the history needed for undo and repetition draws).
+  const [moves, setMoves] = useState<string[]>([]);
+  const game = useMemo(() => buildGame(moves), [moves]);
   const [playerColor, setPlayerColor] = useState<'w' | 'b'>('w');
   const [isBotThinking, setIsBotThinking] = useState<boolean>(false);
-  const [evalScore, setEvalScore] = useState<number>(0);
-  const [moveHistory, setMoveHistory] = useState<string[]>([]);
-  const [lastMove, setLastMove] = useState<{ from: Square; to: Square } | null>(null);
+  const evalScore = useMemo(() => getEvalBarScore(game), [game]);
+  const moveHistory = moves;
+  const lastMove = useMemo(() => {
+    const h = game.history({ verbose: true }) as Move[];
+    const m = h[h.length - 1];
+    return m ? { from: m.from, to: m.to } : null;
+  }, [game]);
+
+  // Identity of the current match: guards against stale bot timeouts after "New Match"
+  const matchRef = useRef<{ id: string; createdAt: string; bot: BotPersonality; color: 'w' | 'b' }>({
+    id: newGameId(),
+    createdAt: new Date().toISOString(),
+    bot: BOTS[0],
+    color: 'w',
+  });
 
   // Coach hint
   const [coachHint, setCoachHint] = useState<{ move: string; explanation: string } | null>(null);
@@ -43,16 +72,42 @@ export const PlayBotView: React.FC = () => {
     reason: string;
   }>({ over: false, winner: null, reason: '' });
 
+  // Persist the game (synced to GitHub when connected) every time it changes
+  useEffect(() => {
+    if (moves.length === 0) return;
+    const m = matchRef.current;
+    let result: GameResult = '*';
+    if (gameResult.over) {
+      if (gameResult.winner === 'draw') result = '1/2-1/2';
+      else {
+        const whiteWon = (gameResult.winner === 'player') === (m.color === 'w');
+        result = whiteWon ? '1-0' : '0-1';
+      }
+    }
+    upsertGame({
+      id: m.id,
+      createdAt: m.createdAt,
+      white: m.color === 'w' ? 'You' : m.bot.name,
+      black: m.color === 'b' ? 'You' : m.bot.name,
+      playerColor: m.color,
+      botId: m.bot.id,
+      botName: m.bot.name,
+      botElo: m.bot.elo,
+      botAvatar: m.bot.avatar,
+      moves,
+      result,
+      termination: gameResult.over ? gameResult.reason : undefined,
+    });
+  }, [moves, gameResult, upsertGame]);
+
   // Reset or start match
   const startNewMatch = (bot: BotPersonality = selectedBot, color: 'w' | 'b' = playerColor) => {
-    const newG = new Chess();
-    setGame(newG);
+    matchRef.current = { id: newGameId(), createdAt: new Date().toISOString(), bot, color };
+    setMoves([]);
     setSelectedBot(bot);
     setPlayerColor(color);
-    setEvalScore(0);
-    setMoveHistory([]);
-    setLastMove(null);
     setCoachHint(null);
+    setIsBotThinking(false);
     setGameResult({ over: false, winner: null, reason: '' });
 
     const quote = bot.quotes.start[Math.floor(Math.random() * bot.quotes.start.length)];
@@ -60,17 +115,20 @@ export const PlayBotView: React.FC = () => {
 
     // If bot plays White, bot moves first
     if (color === 'b') {
-      setTimeout(() => triggerBotTurn(newG, bot), 600);
+      triggerBotTurn([], bot);
     }
   };
 
-  const triggerBotTurn = (currentGame: Chess, bot: BotPersonality) => {
-    if (currentGame.isGameOver()) return;
+  const triggerBotTurn = (currentMoves: string[], bot: BotPersonality) => {
+    const matchId = matchRef.current.id;
+    if (buildGame(currentMoves).isGameOver()) return;
 
     setIsBotThinking(true);
 
     setTimeout(() => {
+      if (matchRef.current.id !== matchId) return; // a new match started meanwhile
       try {
+        const currentGame = buildGame(currentMoves);
         const botDecision = findBotMove(currentGame, bot.depth, bot.blunderRate);
         if (botDecision) {
           const moveRes = currentGame.move({
@@ -80,10 +138,7 @@ export const PlayBotView: React.FC = () => {
           });
 
           if (moveRes) {
-            setLastMove({ from: botDecision.from, to: botDecision.to });
-            setGame(new Chess(currentGame.fen()));
-            setMoveHistory(currentGame.history());
-            setEvalScore(getEvalBarScore(currentGame));
+            setMoves([...currentMoves, moveRes.san]);
 
             if (moveRes.captured) {
               sounds.playCapture();
@@ -109,8 +164,9 @@ export const PlayBotView: React.FC = () => {
   };
 
   const checkGameEnd = (currentGame: Chess, bot: BotPersonality) => {
+    const color = matchRef.current.color;
     if (currentGame.isCheckmate()) {
-      const winner = currentGame.turn() === playerColor ? 'bot' : 'player';
+      const winner = currentGame.turn() === color ? 'bot' : 'player';
       const reason = winner === 'player' ? 'Checkmate! You win!' : 'Checkmate! Bot wins!';
       setGameResult({ over: true, winner, reason });
 
@@ -124,7 +180,8 @@ export const PlayBotView: React.FC = () => {
         setBotSpeech(bot.quotes.onWin[0] || 'Checkmate!');
       }
     } else if (currentGame.isDraw()) {
-      let reason = 'Draw by Stalemate';
+      let reason = 'Draw by 50-move rule';
+      if (currentGame.isStalemate()) reason = 'Draw by Stalemate';
       if (currentGame.isThreefoldRepetition()) reason = 'Draw by Threefold Repetition';
       if (currentGame.isInsufficientMaterial()) reason = 'Draw by Insufficient Material';
 
@@ -138,7 +195,8 @@ export const PlayBotView: React.FC = () => {
     if (isBotThinking || gameResult.over || game.turn() !== playerColor) return;
 
     try {
-      const moveRes = game.move({
+      const nextGame = buildGame(moves);
+      const moveRes = nextGame.move({
         from: move.from,
         to: move.to,
         promotion: move.promotion || 'q',
@@ -149,11 +207,8 @@ export const PlayBotView: React.FC = () => {
         return;
       }
 
-      setLastMove({ from: move.from, to: move.to });
-      const nextGame = new Chess(game.fen());
-      setGame(nextGame);
-      setMoveHistory(nextGame.history());
-      setEvalScore(getEvalBarScore(nextGame));
+      const nextMoves = [...moves, moveRes.san];
+      setMoves(nextMoves);
       setCoachHint(null);
 
       if (moveRes.captured) {
@@ -170,7 +225,7 @@ export const PlayBotView: React.FC = () => {
       }
 
       // Trigger bot response
-      triggerBotTurn(nextGame, selectedBot);
+      triggerBotTurn(nextMoves, selectedBot);
     } catch {
       sounds.playMistake();
     }
@@ -178,24 +233,20 @@ export const PlayBotView: React.FC = () => {
 
   // Undo move (undoes bot's move and player's move)
   const handleUndo = () => {
-    if (isBotThinking || moveHistory.length === 0) return;
-
-    const g = new Chess(game.fen());
-    g.undo(); // undo bot
-    if (g.turn() !== playerColor) {
-      g.undo(); // undo player
-    }
-    setGame(g);
-    setMoveHistory(g.history());
-    setEvalScore(getEvalBarScore(g));
+    if (isBotThinking || moves.length === 0) return;
+    let next = moves.slice(0, -1);
+    if (next.length > 0 && buildGame(next).turn() !== playerColor) next = next.slice(0, -1);
+    setMoves(next);
     setCoachHint(null);
     setGameResult({ over: false, winner: null, reason: '' });
+    // Playing Black and undoing back to the start: the bot has to open again
+    if (next.length === 0 && playerColor === 'b') triggerBotTurn([], selectedBot);
   };
 
   // Request Coach Hint
   const handleAskCoach = () => {
     if (game.isGameOver() || isBotThinking) return;
-    const best = findBotMove(game, 3, 0);
+    const best = findBotMove(buildGame(moves), 3, 0);
     if (best) {
       setCoachHint({
         move: `${best.from.toUpperCase()} to ${best.to.toUpperCase()}`,
@@ -360,12 +411,23 @@ export const PlayBotView: React.FC = () => {
                   ? 'Victory logged in your profile (+100 XP)!'
                   : 'Great effort! Analyze mistakes and challenge again.'}
               </p>
-              <button
-                onClick={() => startNewMatch()}
-                className="w-full py-2.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-stone-950 font-bold text-xs shadow transition"
-              >
-                Play Rematch
-              </button>
+              <div className="flex gap-2">
+                {onReviewGame && moves.length > 0 && (
+                  <button
+                    onClick={() => onReviewGame(matchRef.current.id)}
+                    className="flex-1 py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow transition flex items-center justify-center gap-1.5"
+                  >
+                    <History className="w-3.5 h-3.5" />
+                    Review with Coach
+                  </button>
+                )}
+                <button
+                  onClick={() => startNewMatch()}
+                  className="flex-1 py-2.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-stone-950 font-bold text-xs shadow transition"
+                >
+                  Play Rematch
+                </button>
+              </div>
             </div>
           )}
 

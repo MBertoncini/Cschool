@@ -152,13 +152,22 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onSelectTab }) => 
           <div className="text-xs text-purple-400 mt-1 font-semibold">
             {progress.botRecord.defeatedBots.length} Bots Defeated
           </div>
-          <button
-            onClick={() => onSelectTab('play-bot')}
-            className="mt-3 text-xs text-amber-400 hover:text-amber-300 font-bold flex items-center gap-1 group"
-          >
-            Play a Match
-            <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
-          </button>
+          <div className="flex items-center gap-2 mt-3">
+            <button
+              onClick={() => onSelectTab('play-bot')}
+              className="text-xs text-amber-400 hover:text-amber-300 font-bold flex items-center gap-1 group"
+            >
+              Play Match
+              <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
+            </button>
+            <span className="text-stone-600">·</span>
+            <button
+              onClick={() => onSelectTab('my-games')}
+              className="text-xs text-stone-400 hover:text-stone-200 font-medium"
+            >
+              Review History
+            </button>
+          </div>
         </div>
       </div>
 

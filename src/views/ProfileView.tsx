@@ -11,14 +11,18 @@ import {
   Lock,
   Flame,
   Globe,
+  History,
+  Check,
 } from 'lucide-react';
 import { useProgress, ACHIEVEMENTS_LIST } from '../context/ProgressContext';
+import { useGames } from '../context/GamesContext';
 import { LESSONS } from '../data/lessons';
 import { OPENINGS } from '../data/openings';
 import { MASTER_GAMES } from '../data/masterGames';
 
 export const ProfileView: React.FC = () => {
   const { progress, resetProgress } = useProgress();
+  const { games, sync } = useGames();
 
   const getRankTitle = (lvl: number) => {
     if (lvl <= 1) return 'Pawn Novice';
@@ -34,6 +38,8 @@ export const ProfileView: React.FC = () => {
   const xpCurrent = Math.max(0, progress.xp - currentBaseXp);
   const xpNeeded = Math.max(100, nextLevelXp - currentBaseXp);
   const progressPercent = Math.min(100, Math.round((xpCurrent / xpNeeded) * 100));
+
+  const analyzedCount = games.filter((g) => Boolean(g.analysis)).length;
 
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8 space-y-8 animate-in fade-in">
@@ -83,7 +89,7 @@ export const ProfileView: React.FC = () => {
       </div>
 
       {/* Stats Breakdown Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
         <div className="bg-[#24211d] border border-stone-800 rounded-xl p-4 text-center">
           <GraduationCap className="w-6 h-6 text-blue-400 mx-auto mb-2" />
           <div className="text-2xl font-black text-white">
@@ -121,6 +127,59 @@ export const ProfileView: React.FC = () => {
             Bot Record
           </span>
         </div>
+
+        <div className="bg-[#24211d] border border-stone-800 rounded-xl p-4 text-center col-span-2 sm:col-span-1">
+          <History className="w-6 h-6 text-teal-400 mx-auto mb-2" />
+          <div className="text-2xl font-black text-white">
+            {games.length}{' '}
+            <span className="text-xs text-stone-500 font-normal">({analyzedCount} analyzed)</span>
+          </div>
+          <span className="text-[11px] text-stone-400 font-bold uppercase tracking-wider block mt-1">
+            Saved Matches
+          </span>
+        </div>
+      </div>
+
+      {/* GitHub Sync Status Card */}
+      <div className="bg-[#24211d] border border-stone-800 rounded-2xl p-5 shadow-lg flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-3.5">
+          <div className="w-10 h-10 rounded-xl bg-stone-900 border border-stone-700 flex items-center justify-center text-xl">
+            {sync.user ? (
+              <img
+                src={sync.user.avatarUrl}
+                alt={sync.user.login}
+                className="w-full h-full rounded-xl object-cover"
+              />
+            ) : (
+              '☁️'
+            )}
+          </div>
+          <div>
+            <h3 className="text-sm font-bold text-white flex items-center gap-2">
+              <span>Cross-Device Match Sync (GitHub)</span>
+              {sync.user ? (
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 font-bold">
+                  Connected as @{sync.user.login}
+                </span>
+              ) : (
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-stone-800 text-stone-400 border border-stone-700 font-bold">
+                  Offline / Local
+                </span>
+              )}
+            </h3>
+            <p className="text-xs text-stone-400 mt-0.5">
+              {sync.user
+                ? 'Your match history and coach reviews are synchronized across all your devices via a private GitHub Gist.'
+                : 'Connect your GitHub account in the My Games tab to synchronize matches between desktop, laptop, and phone.'}
+            </p>
+          </div>
+        </div>
+
+        {sync.lastSync && (
+          <span className="text-[11px] text-stone-500 font-medium shrink-0">
+            Last synced: {new Date(sync.lastSync).toLocaleTimeString()}
+          </span>
+        )}
       </div>
 
       {/* Badges & Achievements Section */}

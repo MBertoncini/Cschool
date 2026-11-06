@@ -1,6 +1,6 @@
 import { Square, PieceSymbol, Color } from 'chess.js';
 
-export type TabType = 'dashboard' | 'lessons' | 'openings' | 'gm-decoder' | 'puzzles' | 'play-bot' | 'profile';
+export type TabType = 'dashboard' | 'lessons' | 'openings' | 'gm-decoder' | 'puzzles' | 'play-bot' | 'my-games' | 'profile';
 
 export type LessonCategory = 'tactics-basics' | 'tactics-intermediate' | 'strategy' | 'endgames';
 
@@ -153,4 +153,72 @@ export interface UserProgress {
   achievements: string[];
   streakDays: number;
   lastActiveDate: string;
+}
+
+// ─── Game history & review ────────────────────────────────────────────────
+
+/** Move quality, from best to worst. "book" = known opening theory. */
+export type MoveClass = 'book' | 'genial' | 'super' | 'good' | 'bad' | 'blunder';
+
+/** Engine score from White's point of view: centipawns, or moves to mate (+ = White mates). */
+export interface EngineScore {
+  cp?: number;
+  mate?: number;
+}
+
+export interface EngineLine {
+  score: EngineScore; // White POV
+  san: string[]; // principal variation in SAN, starting from the analysed position
+}
+
+export interface MotifInfo {
+  name: string; // e.g. "Knight Fork", "Absolute Pin", "Back-Rank Mate"
+  detail: string; // human sentence explaining it on this board
+}
+
+export interface PlyAnalysis {
+  ply: number; // 1-based
+  san: string;
+  uci: string;
+  color: 'w' | 'b';
+  evalBefore: EngineScore; // best achievable before the move (White POV)
+  evalAfter: EngineScore; // after the move that was played (White POV)
+  bestSan: string;
+  bestUci: string;
+  lines: EngineLine[]; // top engine lines from the position BEFORE the move
+  reply: EngineLine | null; // engine's expected continuation AFTER the played move
+  classification: MoveClass;
+  winLoss: number; // winning chances (0-100) the mover gave away
+  accuracy: number; // 0-100
+  // Coach text and pattern names are recomputed from this data at display time,
+  // so the stored/synced analysis stays small and the coach can improve without re-analysing.
+}
+
+export interface GameAnalysis {
+  version: number;
+  depth: number;
+  analyzedAt: string;
+  plies: PlyAnalysis[];
+  accuracy: { w: number; b: number };
+  opening?: string;
+}
+
+export type GameResult = '1-0' | '0-1' | '1/2-1/2' | '*';
+
+export interface SavedGame {
+  id: string;
+  createdAt: string;
+  updatedAt: string;
+  white: string;
+  black: string;
+  playerColor: 'w' | 'b';
+  botId?: string;
+  botName?: string;
+  botElo?: number;
+  botAvatar?: string;
+  moves: string[]; // SAN
+  result: GameResult;
+  termination?: string;
+  analysis?: GameAnalysis;
+  deleted?: boolean; // tombstone so deletions sync across devices
 }

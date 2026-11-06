@@ -3,16 +3,17 @@ import React from 'react';
 interface EvaluationBarProps {
   score: number; // Centipawns or -10 to +10
   orientation?: 'white' | 'black';
+  label?: string; // overrides the numeric text, e.g. "M3"
 }
 
-export const EvaluationBar: React.FC<EvaluationBarProps> = ({ score, orientation = 'white' }) => {
+export const EvaluationBar: React.FC<EvaluationBarProps> = ({ score, orientation = 'white', label }) => {
   // Normalize score between -10 and 10 to a 0% to 100% white advantage percentage
   const clamped = Math.max(-10, Math.min(10, score));
   // 0 -> 50%, +10 -> 98%, -10 -> 2%
   const whitePercent = 50 + (clamped / 10) * 48;
   const isWhiteFlipped = orientation === 'black';
 
-  const displayScore = score > 0 ? `+${score.toFixed(1)}` : score.toFixed(1);
+  const displayScore = label ?? (score > 0 ? `+${score.toFixed(1)}` : score.toFixed(1));
 
   return (
     <div className="flex flex-col items-center gap-1.5 select-none h-full min-h-[300px] w-8 sm:w-10">

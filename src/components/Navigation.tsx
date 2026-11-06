@@ -10,6 +10,7 @@ import {
   VolumeX,
   Flame,
   LayoutDashboard,
+  History,
 } from 'lucide-react';
 import { TabType } from '../types/chess';
 import { useProgress } from '../context/ProgressContext';
@@ -29,6 +30,7 @@ export const Navigation: React.FC<NavigationProps> = ({ currentTab, onSelectTab 
     { id: 'gm-decoder', label: 'GM Decoder', icon: <Crown className="w-4 h-4 text-amber-400" />, badge: 'Key' },
     { id: 'puzzles', label: 'Puzzles', icon: <Sparkles className="w-4 h-4 text-emerald-400" /> },
     { id: 'play-bot', label: 'Play Bots', icon: <Bot className="w-4 h-4" /> },
+    { id: 'my-games', label: 'My Games', icon: <History className="w-4 h-4 text-amber-400" /> },
     { id: 'profile', label: 'My Progress', icon: <User className="w-4 h-4" /> },
   ];
 
@@ -66,7 +68,7 @@ export const Navigation: React.FC<NavigationProps> = ({ currentTab, onSelectTab 
               <button
                 key={item.id}
                 onClick={() => onSelectTab(item.id)}
-                className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-sm font-semibold transition-all relative ${
+                className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-semibold transition-all relative ${
                   isActive
                     ? 'bg-amber-500/15 text-amber-400 border border-amber-500/30 shadow-sm'
                     : 'text-stone-300 hover:text-white hover:bg-stone-800/60'
@@ -131,7 +133,7 @@ export const Navigation: React.FC<NavigationProps> = ({ currentTab, onSelectTab 
             <button
               key={item.id}
               onClick={() => onSelectTab(item.id)}
-              className={`flex flex-col items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium transition shrink-0 ${
+              className={`flex flex-col items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium transition shrink-0 ${
                 isActive ? 'text-amber-400 font-bold' : 'text-stone-400 hover:text-stone-200'
               }`}
             >

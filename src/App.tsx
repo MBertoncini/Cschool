@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { TabType } from './types/chess';
 import { ProgressProvider, useProgress } from './context/ProgressContext';
+import { GamesProvider } from './context/GamesContext';
 import { Navigation } from './components/Navigation';
 import { DashboardView } from './views/DashboardView';
 import { LessonsView } from './views/LessonsView';
@@ -8,17 +9,33 @@ import { OpeningsView } from './views/OpeningsView';
 import { GMDecoderView } from './views/GMDecoderView';
 import { PuzzlesView } from './views/PuzzlesView';
 import { PlayBotView } from './views/PlayBotView';
+import { MyGamesView } from './views/MyGamesView';
+import { GameReviewView } from './views/GameReviewView';
 import { ProfileView } from './views/ProfileView';
-import { Sparkles, X } from 'lucide-react';
+import { X } from 'lucide-react';
 
 const AppContent: React.FC = () => {
   const [currentTab, setCurrentTab] = useState<TabType>('dashboard');
+  const [reviewGameId, setReviewGameId] = useState<string | null>(null);
   const { recentToast, clearToast } = useProgress();
+
+  const handleSelectTab = (tab: TabType) => {
+    if (tab === 'my-games') {
+      // If user clicks "My Games" tab directly, show the games list
+      setReviewGameId(null);
+    }
+    setCurrentTab(tab);
+  };
+
+  const handleReviewGame = (gameId: string) => {
+    setReviewGameId(gameId);
+    setCurrentTab('my-games');
+  };
 
   return (
     <div className="min-h-screen flex flex-col bg-[#161412] text-gray-100">
       {/* Navigation Header */}
-      <Navigation currentTab={currentTab} onSelectTab={setCurrentTab} />
+      <Navigation currentTab={currentTab} onSelectTab={handleSelectTab} />
 
       {/* Floating Toast Notification */}
       {recentToast && (
@@ -43,12 +60,24 @@ const AppContent: React.FC = () => {
 
       {/* Main View Body */}
       <main className="flex-1 pb-16">
-        {currentTab === 'dashboard' && <DashboardView onSelectTab={setCurrentTab} />}
+        {currentTab === 'dashboard' && <DashboardView onSelectTab={handleSelectTab} />}
         {currentTab === 'lessons' && <LessonsView />}
         {currentTab === 'openings' && <OpeningsView />}
         {currentTab === 'gm-decoder' && <GMDecoderView />}
         {currentTab === 'puzzles' && <PuzzlesView />}
-        {currentTab === 'play-bot' && <PlayBotView />}
+        {currentTab === 'play-bot' && <PlayBotView onReviewGame={handleReviewGame} />}
+        {currentTab === 'my-games' &&
+          (reviewGameId ? (
+            <GameReviewView
+              gameId={reviewGameId}
+              onBack={() => setReviewGameId(null)}
+            />
+          ) : (
+            <MyGamesView
+              onSelectGame={handleReviewGame}
+              onNavigateTab={handleSelectTab}
+            />
+          ))}
         {currentTab === 'profile' && <ProfileView />}
       </main>
 
@@ -61,16 +90,19 @@ const AppContent: React.FC = () => {
             <span>Designed for GitHub Pages & Offline Play</span>
           </div>
           <div className="flex items-center gap-4 text-stone-400">
-            <button onClick={() => setCurrentTab('gm-decoder')} className="hover:text-amber-400 transition">
+            <button onClick={() => handleSelectTab('gm-decoder')} className="hover:text-amber-400 transition">
               GM Decoder
             </button>
-            <button onClick={() => setCurrentTab('lessons')} className="hover:text-amber-400 transition">
+            <button onClick={() => handleSelectTab('lessons')} className="hover:text-amber-400 transition">
               Academy
             </button>
-            <button onClick={() => setCurrentTab('play-bot')} className="hover:text-amber-400 transition">
+            <button onClick={() => handleSelectTab('play-bot')} className="hover:text-amber-400 transition">
               Bots
             </button>
-            <button onClick={() => setCurrentTab('puzzles')} className="hover:text-amber-400 transition">
+            <button onClick={() => handleSelectTab('my-games')} className="hover:text-amber-400 transition">
+              My Games
+            </button>
+            <button onClick={() => handleSelectTab('puzzles')} className="hover:text-amber-400 transition">
               Puzzles
             </button>
           </div>
@@ -83,7 +115,9 @@ const AppContent: React.FC = () => {
 export const App: React.FC = () => {
   return (
     <ProgressProvider>
-      <AppContent />
+      <GamesProvider>
+        <AppContent />
+      </GamesProvider>
     </ProgressProvider>
   );
 };
