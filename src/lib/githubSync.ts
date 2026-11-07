@@ -1,12 +1,12 @@
-// Cross-device game history stored in a private (secret) GitHub Gist owned by the user.
+// Cross-device profile progress and game history stored in a private (secret) GitHub Gist.
 // The app is a static site, so it talks to the GitHub REST API directly from the browser
 // with a personal access token that only needs the `gist` scope.
 
-import { SavedGame } from '../types/chess';
+import { SavedGame, UserProgress } from '../types/chess';
 
 const API = 'https://api.github.com';
 export const GIST_FILENAME = 'cschool-games.json';
-const GIST_DESCRIPTION = 'ChessMaster Academy — game history (synced automatically)';
+const GIST_DESCRIPTION = 'ChessMaster Academy — profile progress & match history (synced automatically)';
 
 export const TOKEN_HELP_URL =
   'https://github.com/settings/tokens/new?scopes=gist&description=ChessMaster%20Academy%20sync';
@@ -18,9 +18,10 @@ export interface GitHubUser {
 }
 
 export interface RemoteStore {
-  version: 1;
+  version: number;
   updatedAt: string;
   games: SavedGame[];
+  progress?: UserProgress;
 }
 
 export class GitHubError extends Error {
@@ -90,7 +91,7 @@ export async function findOrCreateGist(token: string, knownId?: string | null): 
     if (hit) return hit.id;
     if (list.length < 100) break;
   }
-  const empty: RemoteStore = { version: 1, updatedAt: new Date().toISOString(), games: [] };
+  const empty: RemoteStore = { version: 2, updatedAt: new Date().toISOString(), games: [] };
   const created = await gh<Gist>(token, '/gists', {
     method: 'POST',
     body: JSON.stringify({
@@ -105,7 +106,7 @@ export async function findOrCreateGist(token: string, knownId?: string | null): 
 export async function readGist(token: string, gistId: string): Promise<RemoteStore> {
   const g = await gh<Gist>(token, `/gists/${gistId}`);
   const file = g.files[GIST_FILENAME];
-  if (!file) return { version: 1, updatedAt: new Date(0).toISOString(), games: [] };
+  if (!file) return { version: 2, updatedAt: new Date(0).toISOString(), games: [] };
   let content = file.content ?? '';
   // The API truncates files larger than ~1MB; the raw URL always has the full content.
   if (file.truncated && file.raw_url) {
@@ -114,14 +115,29 @@ export async function readGist(token: string, gistId: string): Promise<RemoteSto
   }
   try {
     const parsed = JSON.parse(content) as RemoteStore;
-    return { version: 1, updatedAt: parsed.updatedAt, games: Array.isArray(parsed.games) ? parsed.games : [] };
+    return {
+      version: parsed.version || 1,
+      updatedAt: parsed.updatedAt || new Date().toISOString(),
+      games: Array.isArray(parsed.games) ? parsed.games : [],
+      progress: parsed.progress,
+    };
   } catch {
     throw new GitHubError('The history gist contains invalid JSON. Fix or delete it on gist.github.com.');
   }
 }
 
-export async function writeGist(token: string, gistId: string, games: SavedGame[]): Promise<void> {
-  const store: RemoteStore = { version: 1, updatedAt: new Date().toISOString(), games };
+export async function writeGist(
+  token: string,
+  gistId: string,
+  games: SavedGame[],
+  progress?: UserProgress
+): Promise<void> {
+  const store: RemoteStore = {
+    version: 2,
+    updatedAt: new Date().toISOString(),
+    games,
+    progress,
+  };
   await gh<Gist>(token, `/gists/${gistId}`, {
     method: 'PATCH',
     body: JSON.stringify({ files: { [GIST_FILENAME]: { content: JSON.stringify(store) } } }),
@@ -146,4 +162,135 @@ export function sameGames(a: SavedGame[], b: SavedGame[]): boolean {
   if (a.length !== b.length) return false;
   const idx = new Map(b.map((g) => [g.id, g.updatedAt + (g.analysis ? 'A' : '')]));
   return a.every((g) => idx.get(g.id) === g.updatedAt + (g.analysis ? 'A' : ''));
+}
+
+export function isDefaultProgress(p?: UserProgress | null): boolean {
+  if (!p) return true;
+  return (
+    (p.xp || 0) === 0 &&
+    (p.level || 1) <= 1 &&
+    (!p.completedLessons || p.completedLessons.length === 0) &&
+    (!p.solvedPuzzles || p.solvedPuzzles.length === 0) &&
+    (!p.studiedOpenings || p.studiedOpenings.length === 0) &&
+    (!p.studiedMasterGames || p.studiedMasterGames.length === 0) &&
+    (!p.achievements || p.achievements.length === 0) &&
+    (!p.botRecord ||
+      ((p.botRecord.wins || 0) === 0 &&
+        (p.botRecord.losses || 0) === 0 &&
+        (p.botRecord.draws || 0) === 0 &&
+        (!p.botRecord.defeatedBots || p.botRecord.defeatedBots.length === 0)))
+  );
+}
+
+export function mergeProgress(local: UserProgress, remote?: UserProgress | null): UserProgress {
+  if (!remote) return local;
+  if (isDefaultProgress(local) && !isDefaultProgress(remote)) return remote;
+  if (isDefaultProgress(remote) && !isDefaultProgress(local)) return local;
+
+  const union = (a?: string[], b?: string[]) =>
+    Array.from(new Set([...(a || []), ...(b || [])]));
+
+  const achievements = union(local.achievements, remote.achievements);
+  const completedLessons = union(local.completedLessons, remote.completedLessons);
+  const solvedPuzzles = union(local.solvedPuzzles, remote.solvedPuzzles);
+  const studiedOpenings = union(local.studiedOpenings, remote.studiedOpenings);
+  const studiedMasterGames = union(local.studiedMasterGames, remote.studiedMasterGames);
+
+  const localBot = local.botRecord || { wins: 0, losses: 0, draws: 0, defeatedBots: [] };
+  const remoteBot = remote.botRecord || { wins: 0, losses: 0, draws: 0, defeatedBots: [] };
+  const defeatedBots = union(localBot.defeatedBots, remoteBot.defeatedBots);
+
+  const botRecord = {
+    wins: Math.max(localBot.wins || 0, remoteBot.wins || 0),
+    losses: Math.max(localBot.losses || 0, remoteBot.losses || 0),
+    draws: Math.max(localBot.draws || 0, remoteBot.draws || 0),
+    defeatedBots,
+  };
+
+  const xp = Math.max(local.xp || 0, remote.xp || 0);
+  const level = Math.max(
+    local.level || 1,
+    remote.level || 1,
+    Math.floor(Math.sqrt(xp / 100)) + 1
+  );
+
+  // Tactics rating: pick the one from the more recent update, or the non-default one
+  let tacticsRating = local.tacticsRating || 1000;
+  if (remote.updatedAt && local.updatedAt) {
+    tacticsRating =
+      remote.updatedAt > local.updatedAt
+        ? remote.tacticsRating || 1000
+        : local.tacticsRating || 1000;
+  } else if (
+    (local.tacticsRating === 1000 || !local.tacticsRating) &&
+    remote.tacticsRating &&
+    remote.tacticsRating !== 1000
+  ) {
+    tacticsRating = remote.tacticsRating;
+  } else if (remote.tacticsRating) {
+    tacticsRating = Math.max(local.tacticsRating || 1000, remote.tacticsRating);
+  }
+
+  // Streak & activity: pick latest date
+  let streakDays = Math.max(local.streakDays || 1, remote.streakDays || 1);
+  let lastActiveDate = local.lastActiveDate || new Date().toISOString().split('T')[0];
+  if (remote.lastActiveDate) {
+    if (!local.lastActiveDate || remote.lastActiveDate > local.lastActiveDate) {
+      lastActiveDate = remote.lastActiveDate;
+      streakDays = remote.streakDays || streakDays;
+    }
+  }
+
+  const updatedAt =
+    local.updatedAt && remote.updatedAt
+      ? local.updatedAt > remote.updatedAt
+        ? local.updatedAt
+        : remote.updatedAt
+      : local.updatedAt || remote.updatedAt || new Date().toISOString();
+
+  return {
+    xp,
+    level,
+    tacticsRating,
+    completedLessons,
+    solvedPuzzles,
+    studiedOpenings,
+    studiedMasterGames,
+    botRecord,
+    achievements,
+    streakDays,
+    lastActiveDate,
+    updatedAt,
+  };
+}
+
+export function sameProgress(a?: UserProgress | null, b?: UserProgress | null): boolean {
+  if (!a && !b) return true;
+  if (!a || !b) return false;
+  if ((a.xp || 0) !== (b.xp || 0)) return false;
+  if ((a.level || 1) !== (b.level || 1)) return false;
+  if ((a.tacticsRating || 1000) !== (b.tacticsRating || 1000)) return false;
+  if ((a.streakDays || 1) !== (b.streakDays || 1)) return false;
+  if (a.lastActiveDate !== b.lastActiveDate) return false;
+
+  const aBot = a.botRecord || { wins: 0, losses: 0, draws: 0, defeatedBots: [] };
+  const bBot = b.botRecord || { wins: 0, losses: 0, draws: 0, defeatedBots: [] };
+  if ((aBot.wins || 0) !== (bBot.wins || 0)) return false;
+  if ((aBot.losses || 0) !== (bBot.losses || 0)) return false;
+  if ((aBot.draws || 0) !== (bBot.draws || 0)) return false;
+
+  const sameSet = (arr1: string[] = [], arr2: string[] = []) => {
+    if (arr1.length !== arr2.length) return false;
+    const s = new Set(arr1);
+    return arr2.every((x) => s.has(x));
+  };
+
+  if (!sameSet(a.completedLessons, b.completedLessons)) return false;
+  if (!sameSet(a.solvedPuzzles, b.solvedPuzzles)) return false;
+  if (!sameSet(a.studiedOpenings, b.studiedOpenings)) return false;
+  if (!sameSet(a.studiedMasterGames, b.studiedMasterGames)) return false;
+  if (!sameSet(a.achievements, b.achievements)) return false;
+  if (!sameSet(aBot.defeatedBots, bBot.defeatedBots)) return false;
+
+  return true;
 }

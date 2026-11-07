@@ -1,6 +1,7 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { UserProgress, Achievement } from '../types/chess';
 import { sounds } from '../engine/sound';
+import { mergeProgress, sameProgress } from '../lib/githubSync';
 
 export const ACHIEVEMENTS_LIST: Achievement[] = [
   {
@@ -70,6 +71,7 @@ const INITIAL_PROGRESS: UserProgress = {
   achievements: [],
   streakDays: 1,
   lastActiveDate: new Date().toISOString().split('T')[0],
+  updatedAt: new Date(0).toISOString(),
 };
 
 const STORAGE_KEY = 'cschool_user_progress_v1';
@@ -82,7 +84,8 @@ interface ProgressContextType {
   studyOpening: (openingId: string) => void;
   studyMasterGame: (gameId: string) => void;
   recordBotGame: (botId: string, result: 'win' | 'loss' | 'draw') => void;
-  resetProgress: () => void;
+  resetProgress: (onResetConfirmed?: () => void) => void;
+  applyRemoteProgress: (remote: UserProgress) => void;
   soundEnabled: boolean;
   toggleSound: () => void;
   recentToast: { title: string; message: string; icon?: string } | null;
@@ -166,6 +169,7 @@ export const ProgressProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         ...prev,
         achievements: [...prev.achievements, achievementId],
         xp: prev.xp + 100,
+        updatedAt: new Date().toISOString(),
       };
     });
   };
@@ -188,6 +192,7 @@ export const ProgressProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         ...prev,
         xp: newXp,
         level: newLevel,
+        updatedAt: new Date().toISOString(),
       };
     });
   };
@@ -205,6 +210,7 @@ export const ProgressProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         completedLessons: newCompleted,
         xp: newXp,
         level: newLevel,
+        updatedAt: new Date().toISOString(),
       };
     });
 
@@ -242,6 +248,7 @@ export const ProgressProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         solvedPuzzles: newSolved,
         xp: newXp,
         level: newLevel,
+        updatedAt: new Date().toISOString(),
       };
     });
   };
@@ -257,6 +264,7 @@ export const ProgressProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         ...prev,
         studiedOpenings: updated,
         xp: prev.xp + 50,
+        updatedAt: new Date().toISOString(),
       };
     });
   };
@@ -270,6 +278,7 @@ export const ProgressProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         ...prev,
         studiedMasterGames: updated,
         xp: prev.xp + 75,
+        updatedAt: new Date().toISOString(),
       };
     });
   };
@@ -298,17 +307,34 @@ export const ProgressProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           defeatedBots: defeated,
         },
         xp: prev.xp + (result === 'win' ? 60 : result === 'draw' ? 30 : 15),
+        updatedAt: new Date().toISOString(),
       };
     });
   };
 
-  const resetProgress = () => {
+  const applyRemoteProgress = useCallback((remote: UserProgress) => {
+    setProgress((prev) => {
+      const merged = mergeProgress(prev, remote);
+      if (sameProgress(merged, prev)) return prev;
+      return merged;
+    });
+  }, []);
+
+  const resetProgress = (onResetConfirmed?: () => void) => {
     if (window.confirm('Are you sure you want to reset your academy rating and progress?')) {
-      setProgress(INITIAL_PROGRESS);
+      const fresh: UserProgress = {
+        ...INITIAL_PROGRESS,
+        lastActiveDate: new Date().toISOString().split('T')[0],
+        updatedAt: new Date().toISOString(),
+      };
+      setProgress(fresh);
       try {
-        localStorage.removeItem(STORAGE_KEY);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(fresh));
       } catch {
         // ignore
+      }
+      if (onResetConfirmed) {
+        onResetConfirmed();
       }
       showToast('Progress Reset', 'Your academy record has been restored to factory baseline.', 'rotate-ccw');
     }
@@ -325,6 +351,7 @@ export const ProgressProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         studyMasterGame,
         recordBotGame,
         resetProgress,
+        applyRemoteProgress,
         soundEnabled,
         toggleSound,
         recentToast,

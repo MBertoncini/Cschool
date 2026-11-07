@@ -153,6 +153,7 @@ export interface UserProgress {
   achievements: string[];
   streakDays: number;
   lastActiveDate: string;
+  updatedAt?: string;
 }
 
 // ─── Game history & review ────────────────────────────────────────────────

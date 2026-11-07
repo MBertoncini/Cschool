@@ -1,5 +1,5 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
-import { GameAnalysis, SavedGame } from '../types/chess';
+import { GameAnalysis, SavedGame, UserProgress } from '../types/chess';
 import {
   fetchUser,
   findOrCreateGist,
@@ -7,10 +7,13 @@ import {
   GitHubUser,
   RemoteStore,
   mergeGames,
+  mergeProgress,
   readGist,
   sameGames,
+  sameProgress,
   writeGist,
 } from '../lib/githubSync';
+import { useProgress } from './ProgressContext';
 
 const GAMES_KEY = 'cschool_games_v1';
 const TOKEN_KEY = 'cschool_github_token';
@@ -35,6 +38,7 @@ interface GamesContextType {
   connectGitHub: (token: string) => Promise<void>;
   disconnectGitHub: () => void;
   syncNow: () => void;
+  resetRemoteProgress: () => Promise<void>;
 }
 
 const GamesContext = createContext<GamesContextType | undefined>(undefined);
@@ -84,6 +88,10 @@ function persistGames(games: SavedGame[]) {
 }
 
 export const GamesProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { progress, applyRemoteProgress } = useProgress();
+  const progressRef = useRef(progress);
+  progressRef.current = progress;
+
   const [allGames, setAllGames] = useState<SavedGame[]>(loadGames);
   const gamesRef = useRef(allGames);
   gamesRef.current = allGames;
@@ -109,6 +117,8 @@ export const GamesProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const syncingRef = useRef(false);
   const pendingRef = useRef(false);
   const timerRef = useRef<number | null>(null);
+  const isApplyingRemoteRef = useRef(false);
+  const prevProgressRef = useRef(progress);
 
   useEffect(() => {
     persistGames(allGames);
@@ -141,13 +151,35 @@ export const GamesProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         setGistId(id);
         safeSet(GIST_KEY, id);
       }
-      const merged = mergeGames(gamesRef.current, remote.games);
-      if (!sameGames(merged, remote.games)) await writeGist(tk, id, merged);
-      // Local edits made while we were talking to GitHub are kept (and trigger another sync).
+
+      const currentGames = gamesRef.current;
+      const currentProgress = progressRef.current;
+
+      const mergedGames = mergeGames(currentGames, remote.games);
+      const mergedProgress = mergeProgress(currentProgress, remote.progress);
+
+      const gamesNeedUpload = !sameGames(mergedGames, remote.games);
+      const progressNeedsUpload = !sameProgress(mergedProgress, remote.progress);
+
+      if (gamesNeedUpload || progressNeedsUpload) {
+        await writeGist(tk, id, mergedGames, mergedProgress);
+      }
+
+      // Update games locally
       setAllGames((cur) => {
-        const next = mergeGames(cur, merged);
+        const next = mergeGames(cur, mergedGames);
         return sameGames(next, cur) ? cur : next;
       });
+
+      // Update progress locally if remote had updates
+      if (!sameProgress(mergedProgress, currentProgress)) {
+        isApplyingRemoteRef.current = true;
+        applyRemoteProgress(mergedProgress);
+        setTimeout(() => {
+          isApplyingRemoteRef.current = false;
+        }, 200);
+      }
+
       setError(null);
       setStatus('synced');
       setLastSync(new Date().toISOString());
@@ -161,7 +193,7 @@ export const GamesProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         void runSync();
       }
     }
-  }, []);
+  }, [applyRemoteProgress]);
 
   const scheduleSync = useCallback(
     (delay = 2500) => {
@@ -174,6 +206,21 @@ export const GamesProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     },
     [runSync]
   );
+
+  // Auto-sync whenever progress changes locally
+  useEffect(() => {
+    if (isApplyingRemoteRef.current) {
+      prevProgressRef.current = progress;
+      return;
+    }
+    if (sameProgress(prevProgressRef.current, progress)) {
+      return;
+    }
+    prevProgressRef.current = progress;
+    if (tokenRef.current) {
+      scheduleSync(2000);
+    }
+  }, [progress, scheduleSync]);
 
   // Initial sync + re-sync when coming back to the tab (e.g. after playing on another device)
   useEffect(() => {
@@ -280,6 +327,32 @@ export const GamesProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setError(null);
   }, []);
 
+  const resetRemoteProgress = useCallback(async () => {
+    const tk = tokenRef.current;
+    const id = gistIdRef.current;
+    if (tk && id) {
+      try {
+        const emptyProgress: UserProgress = {
+          xp: 0,
+          level: 1,
+          tacticsRating: 1000,
+          completedLessons: [],
+          solvedPuzzles: [],
+          studiedOpenings: [],
+          studiedMasterGames: [],
+          botRecord: { wins: 0, losses: 0, draws: 0, defeatedBots: [] },
+          achievements: [],
+          streakDays: 1,
+          lastActiveDate: new Date().toISOString().split('T')[0],
+          updatedAt: new Date().toISOString(),
+        };
+        await writeGist(tk, id, gamesRef.current, emptyProgress);
+      } catch (e) {
+        console.warn('Could not reset remote progress on gist', e);
+      }
+    }
+  }, []);
+
   const games = useMemo(() => allGames.filter((g) => !g.deleted), [allGames]);
   const getGame = useCallback((id: string) => games.find((g) => g.id === id), [games]);
 
@@ -295,6 +368,7 @@ export const GamesProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         connectGitHub,
         disconnectGitHub,
         syncNow: () => void runSync(),
+        resetRemoteProgress,
       }}
     >
       {children}

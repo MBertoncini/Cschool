@@ -8,28 +8,20 @@ import {
   Layers,
   ChevronRight,
   TrendingUp,
-  Award,
-  KeyRound,
-  ExternalLink,
   Trash2,
-  AlertCircle,
-  Loader2,
-  Check,
-  X,
+  Cloud,
 } from 'lucide-react';
 import { useGames } from '../context/GamesContext';
 import { SavedGame, GameResult } from '../types/chess';
 import { countClasses, MOVE_CLASS_INFO } from '../engine/gameAnalysis';
 import { BotAvatar } from '../components/BotAvatar';
 import { ChessPiece } from '../components/ChessPieces';
+import { SyncModal } from '../components/SyncModal';
 
 interface MyGamesViewProps {
   onSelectGame: (gameId: string) => void;
   onNavigateTab: (tab: 'play-bot' | 'dashboard' | 'lessons') => void;
 }
-
-const TOKEN_HELP_URL =
-  'https://github.com/settings/tokens/new?description=ChessMaster%20Academy%20Sync&scopes=gist';
 
 export const MyGamesView: React.FC<MyGamesViewProps> = ({ onSelectGame, onNavigateTab }) => {
   const { games, sync, connectGitHub, disconnectGitHub, syncNow, deleteGame } = useGames();
@@ -37,26 +29,6 @@ export const MyGamesView: React.FC<MyGamesViewProps> = ({ onSelectGame, onNaviga
   const [filterResult, setFilterResult] = useState<'all' | 'win' | 'loss' | 'draw'>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [showSyncModal, setShowSyncModal] = useState<boolean>(false);
-  const [patToken, setPatToken] = useState<string>('');
-  const [isConnecting, setIsConnecting] = useState<boolean>(false);
-  const [syncErrorMsg, setSyncErrorMsg] = useState<string | null>(null);
-
-  const handleConnectToken = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!patToken.trim()) return;
-
-    setIsConnecting(true);
-    setSyncErrorMsg(null);
-    try {
-      await connectGitHub(patToken.trim());
-      setShowSyncModal(false);
-      setPatToken('');
-    } catch (err) {
-      setSyncErrorMsg(err instanceof Error ? err.message : 'Failed to connect GitHub token');
-    } finally {
-      setIsConnecting(false);
-    }
-  };
 
   const filteredGames = games.filter((g) => {
     // Filter by outcome
@@ -165,6 +137,7 @@ export const MyGamesView: React.FC<MyGamesViewProps> = ({ onSelectGame, onNaviga
               onClick={() => setShowSyncModal(true)}
               className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl wood-btn text-xs font-serif font-bold tracking-wide border border-wood-650 text-wood-200 hover:text-wood-100"
             >
+              <Cloud className="w-3.5 h-3.5" />
               <span>Sync with GitHub</span>
             </button>
           )}
@@ -179,80 +152,12 @@ export const MyGamesView: React.FC<MyGamesViewProps> = ({ onSelectGame, onNaviga
         </div>
       </div>
 
-      {/* Sync Modal */}
-      {showSyncModal && (
-        <div className="fixed inset-0 z-50 bg-wood-950/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="wood-panel-raised border border-wood-650 rounded-2xl p-6 max-w-md w-full shadow-wood-raised-lg space-y-4 animate-in fade-in zoom-in-95">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2.5 text-wood-100 font-serif font-bold text-lg">
-                <span>Sync Matches with GitHub</span>
-              </div>
-              <button
-                onClick={() => setShowSyncModal(false)}
-                className="text-wood-400 hover:text-wood-100 p-1 rounded-lg"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            <p className="text-xs text-wood-300 leading-relaxed font-sans">
-              Store your match history in a private secret GitHub Gist on your account. Wherever
-              you open ChessMaster Academy, your matches and evaluations stay seamlessly in sync.
-            </p>
-
-            <form onSubmit={handleConnectToken} className="space-y-3">
-              <div>
-                <label className="block text-[10px] font-serif font-bold text-wood-400 uppercase tracking-wider mb-1">
-                  Personal Access Token (classic or fine-grained with Gist permission)
-                </label>
-                <div className="relative">
-                  <KeyRound className="w-4 h-4 absolute left-3 top-3 text-wood-500" />
-                  <input
-                    type="password"
-                    value={patToken}
-                    onChange={(e) => setPatToken(e.target.value)}
-                    placeholder="ghp_xxxxxxxxxxxxxxxxxxxx"
-                    className="w-full wood-well border border-wood-700 rounded-xl pl-9 pr-3 py-2 text-xs text-wood-100 placeholder-wood-600 focus:outline-none focus:border-brass font-mono shadow-wood-inset"
-                  />
-                </div>
-              </div>
-
-              {syncErrorMsg && (
-                <div className="p-2.5 rounded-lg wood-well border border-rose-900/60 text-rose-300 text-xs flex items-center gap-2">
-                  <AlertCircle className="w-4 h-4 shrink-0" />
-                  <span>{syncErrorMsg}</span>
-                </div>
-              )}
-
-              <div className="pt-2 flex items-center justify-between">
-                <a
-                  href={TOKEN_HELP_URL}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-xs text-brass hover:underline flex items-center gap-1 font-semibold"
-                >
-                  <span>Generate token on GitHub</span>
-                  <ExternalLink className="w-3 h-3" />
-                </a>
-
-                <button
-                  type="submit"
-                  disabled={isConnecting || !patToken.trim()}
-                  className="px-4 py-2 rounded-xl wood-btn-brass disabled:opacity-40 text-wood-950 text-xs font-serif font-bold uppercase tracking-wider shadow transition flex items-center gap-1.5"
-                >
-                  {isConnecting ? (
-                    <>
-                      <Loader2 className="w-3.5 h-3.5 animate-spin" /> Connecting...
-                    </>
-                  ) : (
-                    'Connect & Sync'
-                  )}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      {/* Reusable Sync Modal */}
+      <SyncModal
+        isOpen={showSyncModal}
+        onClose={() => setShowSyncModal(false)}
+        onConnect={connectGitHub}
+      />
 
       {/* Filter and search bar */}
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 wood-panel border border-wood-700 rounded-xl p-2.5 shadow-wood-raised">

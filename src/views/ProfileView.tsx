@@ -1,31 +1,29 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Award,
   Zap,
   GraduationCap,
   BookOpen,
-  Crown,
   Bot,
   RotateCcw,
   CheckCircle2,
   Lock,
-  Flame,
-  Globe,
   History,
-  Check,
   Cloud,
+  LogOut,
 } from 'lucide-react';
 import { useProgress, ACHIEVEMENTS_LIST } from '../context/ProgressContext';
 import { useGames } from '../context/GamesContext';
 import { LESSONS } from '../data/lessons';
 import { OPENINGS } from '../data/openings';
-import { MASTER_GAMES } from '../data/masterGames';
 import { ChessPiece } from '../components/ChessPieces';
 import { AchievementIcon } from '../components/ChessIcons';
+import { SyncModal } from '../components/SyncModal';
 
 export const ProfileView: React.FC = () => {
   const { progress, resetProgress } = useProgress();
-  const { games, sync } = useGames();
+  const { games, sync, connectGitHub, disconnectGitHub, syncNow, resetRemoteProgress } = useGames();
+  const [showSyncModal, setShowSyncModal] = useState<boolean>(false);
 
   const getRankTitle = (lvl: number) => {
     if (lvl <= 1) return 'Pawn Novice';
@@ -43,6 +41,12 @@ export const ProfileView: React.FC = () => {
   const progressPercent = Math.min(100, Math.round((xpCurrent / xpNeeded) * 100));
 
   const analyzedCount = games.filter((g) => Boolean(g.analysis)).length;
+
+  const handleResetRecord = () => {
+    resetProgress(() => {
+      void resetRemoteProgress();
+    });
+  };
 
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8 space-y-8 animate-in fade-in">
@@ -146,45 +150,77 @@ export const ProfileView: React.FC = () => {
       </div>
 
       {/* GitHub Sync Status Card */}
-      <div className="wood-panel rounded-2xl p-5 shadow-wood-raised border border-wood-700 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      <div className="wood-panel rounded-2xl p-5 shadow-wood-raised border border-wood-700 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div className="flex items-center gap-3.5">
-          <div className="w-10 h-10 rounded-xl wood-well border border-wood-650 flex items-center justify-center text-brass shadow-wood-inset">
+          <div className="w-12 h-12 rounded-xl wood-well border border-wood-650 flex items-center justify-center text-brass shadow-wood-inset shrink-0 overflow-hidden">
             {sync.user ? (
               <img
                 src={sync.user.avatarUrl}
                 alt={sync.user.login}
-                className="w-full h-full rounded-xl object-cover"
+                className="w-full h-full object-cover"
               />
             ) : (
-              <Cloud className="w-5 h-5 text-wood-400" />
+              <Cloud className="w-6 h-6 text-wood-400" />
             )}
           </div>
           <div>
-            <h3 className="text-sm font-serif font-bold text-wood-100 flex items-center gap-2">
-              <span>Cross-Device Match Sync (GitHub)</span>
+            <h3 className="text-sm font-serif font-bold text-wood-100 flex flex-wrap items-center gap-2">
+              <span>Cross-Device Cloud Sync (GitHub)</span>
               {sync.user ? (
                 <span className="text-[10px] px-2 py-0.5 rounded-md wood-well text-brass border border-brass/30 font-mono">
                   @{sync.user.login}
                 </span>
               ) : (
                 <span className="text-[10px] px-2 py-0.5 rounded-md wood-well text-wood-400 border border-wood-750 font-mono">
-                  Local / Offline
+                  Offline / Local Only
                 </span>
               )}
             </h3>
-            <p className="text-xs text-wood-400 mt-0.5">
+            <p className="text-xs text-wood-400 mt-1 max-w-2xl leading-relaxed">
               {sync.user
-                ? 'Your match history and coach evaluations are synchronized across your devices via a private GitHub Gist.'
-                : 'Connect your GitHub token in the Archives tab to synchronize matches between desktop, laptop, and mobile.'}
+                ? 'Your level, achievements, tactics rating, academy lessons, and match history are synchronized automatically via a private GitHub Gist.'
+                : 'Connect your GitHub Personal Access Token to synchronize your tier level, unlocked achievements, curriculum progress, and match history across all your devices.'}
             </p>
           </div>
         </div>
 
-        {sync.lastSync && (
-          <span className="text-[11px] font-mono text-wood-400 shrink-0">
-            Last synced: {new Date(sync.lastSync).toLocaleTimeString()}
-          </span>
-        )}
+        <div className="flex flex-wrap items-center gap-2.5 w-full md:w-auto justify-end pt-2 md:pt-0 border-t md:border-0 border-wood-800">
+          {sync.user ? (
+            <>
+              {sync.lastSync && (
+                <span className="text-[11px] font-mono text-wood-400 mr-1 hidden lg:inline">
+                  Synced {new Date(sync.lastSync).toLocaleTimeString()}
+                </span>
+              )}
+
+              <button
+                onClick={() => syncNow()}
+                disabled={sync.status === 'syncing'}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl wood-btn text-xs font-serif font-bold text-wood-200 border border-wood-650 hover:text-wood-100 transition"
+              >
+                <RotateCcw className={`w-3.5 h-3.5 ${sync.status === 'syncing' ? 'animate-spin text-brass' : ''}`} />
+                <span>{sync.status === 'syncing' ? 'Syncing...' : 'Sync Now'}</span>
+              </button>
+
+              <button
+                onClick={disconnectGitHub}
+                title="Disconnect GitHub Sync"
+                className="flex items-center gap-1 px-3 py-1.5 rounded-xl wood-well text-xs font-serif font-semibold text-rose-300 border border-rose-900/40 hover:text-rose-200 transition"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+                <span>Disconnect</span>
+              </button>
+            </>
+          ) : (
+            <button
+              onClick={() => setShowSyncModal(true)}
+              className="flex items-center gap-1.5 px-4 py-2 rounded-xl wood-btn-brass text-wood-950 text-xs font-serif font-bold uppercase tracking-wider shadow-brass-raised transition"
+            >
+              <Cloud className="w-3.5 h-3.5" />
+              <span>Connect GitHub Sync</span>
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Badges & Achievements Section */}
@@ -233,21 +269,28 @@ export const ProfileView: React.FC = () => {
       <div className="wood-panel border border-wood-700 rounded-xl p-5 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-wood-raised">
         <div className="space-y-1 text-center sm:text-left">
           <span className="font-serif text-xs font-bold text-wood-200 block uppercase tracking-wider">
-            Offline & Local Browser Storage
+            Local Browser & Cloud Storage
           </span>
           <p className="text-xs text-wood-400">
-            Your progress is securely recorded in your browser localStorage. Fully functional offline with zero servers required.
+            Your progress is securely recorded in your browser localStorage and backed up to your private GitHub Gist when connected.
           </p>
         </div>
 
         <button
-          onClick={resetProgress}
+          onClick={handleResetRecord}
           className="shrink-0 px-3.5 py-1.5 rounded-lg wood-btn text-rose-300 border border-rose-900/40 text-xs font-semibold transition flex items-center gap-1.5"
         >
           <RotateCcw className="w-3.5 h-3.5" />
           <span>Reset Record</span>
         </button>
       </div>
+
+      {/* Shared GitHub Sync Modal */}
+      <SyncModal
+        isOpen={showSyncModal}
+        onClose={() => setShowSyncModal(false)}
+        onConnect={connectGitHub}
+      />
     </div>
   );
 };
