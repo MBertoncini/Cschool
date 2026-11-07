@@ -9,7 +9,6 @@ import {
   XCircle,
   ArrowRight,
   Flame,
-  Award,
 } from 'lucide-react';
 import { TacticalPuzzle } from '../types/chess';
 import { PUZZLES } from '../data/puzzles';
@@ -96,46 +95,46 @@ export const PuzzlesView: React.FC = () => {
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 space-y-6 animate-in fade-in">
       {/* Top Header & Stats */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-stone-800">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-wood-750">
         <div>
-          <div className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-400 uppercase tracking-widest mb-1">
+          <div className="inline-flex items-center gap-1.5 text-xs font-serif font-bold text-brass uppercase tracking-widest mb-1">
             <Sparkles className="w-4 h-4" />
-            <span>Tactical Puzzle Arena</span>
+            <span>Tactical Training Arena</span>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-black text-white">
+          <h1 className="font-serif text-2xl sm:text-3xl font-bold text-wood-100">
             Sharp Tactical Calculation
           </h1>
-          <p className="text-stone-400 text-xs sm:text-sm mt-1">
-            Build pattern recognition for forks, pins, skewers, and back-rank checkmates.
+          <p className="text-wood-400 text-xs sm:text-sm mt-1 font-sans">
+            Build decisive pattern recognition for forks, pins, skewers, and back-rank checkmates.
           </p>
         </div>
 
         {/* Rating and Streak Badges */}
         <div className="flex items-center gap-3">
-          <div className="px-3.5 py-2 rounded-xl bg-[#24211d] border border-stone-800 flex items-center gap-2">
-            <Zap className="w-4 h-4 text-emerald-400" />
+          <div className="px-3.5 py-2 rounded-xl wood-panel border border-wood-700/80 flex items-center gap-2.5 shadow-wood-raised">
+            <Zap className="w-4 h-4 text-brass" />
             <div>
-              <span className="text-[10px] text-stone-400 uppercase font-bold block leading-none">
-                Puzzle Rating
+              <span className="text-[10px] text-wood-400 font-serif uppercase font-bold block leading-none">
+                Tactics Rating
               </span>
-              <span className="text-base font-black text-white">{progress.tacticsRating}</span>
+              <span className="text-base font-bold text-wood-100 font-mono">{progress.tacticsRating}</span>
             </div>
           </div>
 
-          <div className="px-3.5 py-2 rounded-xl bg-orange-500/10 border border-orange-500/30 flex items-center gap-2">
-            <Flame className="w-4 h-4 text-orange-400" />
+          <div className="px-3.5 py-2 rounded-xl wood-panel border border-wood-700/80 flex items-center gap-2.5 shadow-wood-raised">
+            <Flame className="w-4 h-4 text-brass" />
             <div>
-              <span className="text-[10px] text-orange-300 uppercase font-bold block leading-none">
+              <span className="text-[10px] text-wood-400 font-serif uppercase font-bold block leading-none">
                 Streak
               </span>
-              <span className="text-base font-black text-orange-400">{puzzleStreak}</span>
+              <span className="text-base font-bold text-brass font-mono">{puzzleStreak}</span>
             </div>
           </div>
         </div>
       </div>
 
       {/* Theme Filters */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-thin">
+      <div className="flex items-center gap-1.5 overflow-x-auto p-1 wood-well rounded-xl border border-wood-850">
         {[
           { id: 'all', label: 'All Motifs' },
           { id: 'fork', label: 'Forks' },
@@ -151,10 +150,10 @@ export const PuzzlesView: React.FC = () => {
               setActiveTheme(t.id);
               setCurrentIdx(0);
             }}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold shrink-0 transition ${
+            className={`px-3 py-1.5 rounded-lg text-xs font-serif font-bold shrink-0 transition ${
               activeTheme === t.id
-                ? 'bg-emerald-600 text-white shadow'
-                : 'bg-stone-800 hover:bg-stone-700 text-stone-300'
+                ? 'wood-tab-active text-brass font-bold'
+                : 'text-wood-400 hover:text-wood-200'
             }`}
           >
             {t.label}
@@ -178,74 +177,74 @@ export const PuzzlesView: React.FC = () => {
             }
           />
 
-          <div className="w-full max-w-[540px] mt-4 flex items-center justify-between text-xs text-stone-400">
+          <div className="w-full max-w-[540px] mt-4 flex items-center justify-between text-xs text-wood-400 font-mono">
             <span>
-              Puzzle {currentIdx + 1} of {filteredPuzzles.length}
+              Position {currentIdx + 1} of {filteredPuzzles.length}
             </span>
             <button
               onClick={handleReset}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-stone-800 hover:bg-stone-700 text-stone-300 hover:text-white transition"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg wood-btn text-wood-300 hover:text-wood-100 text-xs font-serif font-medium transition"
             >
               <RotateCcw className="w-3.5 h-3.5" />
-              <span>Reset Board</span>
+              <span>Reset Position</span>
             </button>
           </div>
         </div>
 
         {/* Right: Puzzle Objective & Solution Info */}
         <div className="lg:col-span-5 space-y-4">
-          <div className="bg-[#24211d] border border-stone-800 rounded-xl p-5 shadow-lg space-y-3">
+          <div className="wood-panel border border-wood-700 rounded-xl p-5 shadow-wood-raised space-y-3">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-emerald-400 uppercase tracking-wider">
+              <span className="text-[10px] font-serif font-bold text-brass uppercase tracking-wider">
                 {currentPuzzle.theme} • Rating {currentPuzzle.rating}
               </span>
-              <span className="text-xs font-bold px-2 py-0.5 rounded bg-stone-800 text-stone-300">
+              <span className="text-[11px] font-serif font-bold px-2 py-0.5 rounded wood-well text-wood-300 border border-wood-750">
                 {currentPuzzle.turn === 'w' ? 'White to Move' : 'Black to Move'}
               </span>
             </div>
 
-            <h2 className="text-xl font-black text-white">{currentPuzzle.title}</h2>
-            <p className="text-xs sm:text-sm text-stone-300 leading-relaxed font-medium">
+            <h2 className="font-serif text-xl font-bold text-wood-100">{currentPuzzle.title}</h2>
+            <p className="text-xs sm:text-sm text-wood-300 leading-relaxed font-sans font-medium">
               {currentPuzzle.description}
             </p>
           </div>
 
           {/* Outcome Feedback */}
           {isSolved && (
-            <div className="p-4 rounded-xl bg-emerald-950/40 border border-emerald-600/50 text-emerald-200 space-y-2 animate-in fade-in">
-              <div className="flex items-center gap-2 font-bold text-sm text-emerald-400">
-                <CheckCircle2 className="w-5 h-5" />
-                <span>Puzzle Solved! (+15 Rating, +25 XP)</span>
+            <div className="p-4 rounded-xl wood-well border border-brass/50 text-wood-100 space-y-2 shadow-wood-inset animate-in fade-in">
+              <div className="flex items-center gap-2 font-serif font-bold text-sm text-brass">
+                <CheckCircle2 className="w-5 h-5 text-brass" />
+                <span>Tactical Solution Found! (+15 Rating, +25 XP)</span>
               </div>
-              <p className="text-xs leading-relaxed text-emerald-200/90 font-medium">
+              <p className="text-xs leading-relaxed text-wood-200 font-sans">
                 {currentPuzzle.explanation}
               </p>
               <button
                 onClick={handleNextPuzzle}
-                className="w-full mt-2 py-2.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-stone-950 font-bold text-xs shadow transition flex items-center justify-center gap-1.5"
+                className="w-full mt-2 py-2.5 rounded-xl wood-btn-brass text-wood-950 font-serif font-bold text-xs uppercase tracking-wider shadow-brass-raised transition flex items-center justify-center gap-1.5"
               >
-                <span>Next Puzzle</span>
+                <span>Next Tactical Problem</span>
                 <ArrowRight className="w-4 h-4" />
               </button>
             </div>
           )}
 
           {isFailed && (
-            <div className="p-4 rounded-xl bg-rose-950/40 border border-rose-600/50 text-rose-200 space-y-2 animate-in fade-in">
-              <div className="flex items-center gap-2 font-bold text-sm text-rose-400">
+            <div className="p-4 rounded-xl wood-well border border-rose-900/50 text-rose-200 space-y-2 shadow-wood-inset animate-in fade-in">
+              <div className="flex items-center gap-2 font-serif font-bold text-sm text-rose-400">
                 <XCircle className="w-5 h-5" />
-                <span>That move wasn't best (-10 Rating)</span>
+                <span>Sub-optimal line played (-10 Rating)</span>
               </div>
-              <p className="text-xs text-rose-300">
-                Don't worry! Try calculating again or click <b>"Need a Hint?"</b> below.
+              <p className="text-xs text-wood-300 font-sans">
+                Review candidate moves carefully or click <b>"Need a Hint?"</b> to spot the motif.
               </p>
             </div>
           )}
 
           {/* Hint Card */}
           {showHint && (
-            <div className="p-3.5 rounded-xl bg-amber-950/30 border border-amber-600/40 text-xs text-amber-200 space-y-1 animate-in fade-in">
-              <div className="font-bold flex items-center gap-1.5 text-amber-400">
+            <div className="p-3.5 rounded-xl wood-well border border-brass/35 text-xs text-brass space-y-1 shadow-wood-inset animate-in fade-in font-sans">
+              <div className="font-serif font-bold flex items-center gap-1.5 text-brass">
                 <Lightbulb className="w-4 h-4" />
                 <span>Tactical Hint</span>
               </div>
@@ -258,7 +257,7 @@ export const PuzzlesView: React.FC = () => {
             <div className="flex items-center gap-3">
               <button
                 onClick={() => setShowHint(true)}
-                className="flex-1 py-2.5 rounded-xl bg-stone-800 hover:bg-stone-700 text-amber-400 text-xs font-bold border border-stone-700 transition flex items-center justify-center gap-1.5"
+                className="flex-1 py-2.5 rounded-xl wood-btn text-brass text-xs font-serif font-bold border border-brass/30 transition flex items-center justify-center gap-1.5"
               >
                 <Lightbulb className="w-4 h-4" />
                 <span>Need a Hint?</span>
@@ -266,7 +265,7 @@ export const PuzzlesView: React.FC = () => {
 
               <button
                 onClick={handleNextPuzzle}
-                className="py-2.5 px-4 rounded-xl bg-stone-800 hover:bg-stone-700 text-stone-300 text-xs font-semibold border border-stone-700 transition"
+                className="py-2.5 px-4 rounded-xl wood-btn text-wood-300 hover:text-wood-100 text-xs font-serif font-semibold border border-wood-700 transition"
               >
                 Skip &rarr;
               </button>

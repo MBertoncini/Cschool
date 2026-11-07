@@ -17,7 +17,7 @@ export const MOVE_CLASS_INFO: Record<MoveClass, { label: string; symbol: string;
   genial: { label: 'Genial', symbol: '!!', color: '#1baca6', text: 'text-teal-300' },
   super: { label: 'Super good', symbol: '!', color: '#5c8bb0', text: 'text-sky-300' },
   good: { label: 'Good', symbol: '✓', color: '#81b64c', text: 'text-lime-300' },
-  book: { label: 'Book', symbol: '📖', color: '#a88865', text: 'text-amber-200' },
+  book: { label: 'Book', symbol: 'BK', color: '#a88865', text: 'text-amber-200' },
   bad: { label: 'Bad', symbol: '?', color: '#e6912c', text: 'text-orange-300' },
   blunder: { label: 'Blunder', symbol: '??', color: '#ca3431', text: 'text-rose-400' },
 };

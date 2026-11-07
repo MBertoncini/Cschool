@@ -13,12 +13,15 @@ import {
   Globe,
   History,
   Check,
+  Cloud,
 } from 'lucide-react';
 import { useProgress, ACHIEVEMENTS_LIST } from '../context/ProgressContext';
 import { useGames } from '../context/GamesContext';
 import { LESSONS } from '../data/lessons';
 import { OPENINGS } from '../data/openings';
 import { MASTER_GAMES } from '../data/masterGames';
+import { ChessPiece } from '../components/ChessPieces';
+import { AchievementIcon } from '../components/ChessIcons';
 
 export const ProfileView: React.FC = () => {
   const { progress, resetProgress } = useProgress();
@@ -26,10 +29,10 @@ export const ProfileView: React.FC = () => {
 
   const getRankTitle = (lvl: number) => {
     if (lvl <= 1) return 'Pawn Novice';
-    if (lvl === 2) return 'Knight Squire';
+    if (lvl === 2) return 'Knight Apprentice';
     if (lvl === 3) return 'Bishop Tactician';
     if (lvl === 4) return 'Rook Strategist';
-    if (lvl === 5) return 'Queen Prodigy';
+    if (lvl === 5) return 'Queen Master';
     return 'Grandmaster Scholar';
   };
 
@@ -44,44 +47,46 @@ export const ProfileView: React.FC = () => {
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8 space-y-8 animate-in fade-in">
       {/* User Header Profile Card */}
-      <div className="bg-[#24211d] border border-stone-800 rounded-2xl p-6 sm:p-8 shadow-2xl relative overflow-hidden">
+      <div className="wood-panel-raised rounded-2xl p-6 sm:p-8 shadow-wood-raised-lg border border-wood-650 relative overflow-hidden">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 relative z-10">
           <div className="flex items-center gap-4">
-            <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-amber-500 to-amber-600 flex items-center justify-center text-3xl shadow-xl border border-amber-400/30">
-              ♟️
+            <div className="w-16 h-16 rounded-2xl wood-well p-2.5 flex items-center justify-center shadow-wood-inset border border-wood-650">
+              <div className="w-full h-full flex items-center justify-center drop-shadow-[0_2px_4px_rgba(0,0,0,0.6)]">
+                <ChessPiece type="k" color="w" />
+              </div>
             </div>
             <div>
-              <div className="flex items-center gap-2">
-                <h1 className="text-2xl font-black text-white">Chess Student</h1>
-                <span className="text-xs font-bold px-2 py-0.5 rounded bg-amber-500/20 text-amber-400 border border-amber-500/30">
-                  Level {progress.level}
+              <div className="flex items-center gap-2.5">
+                <h1 className="font-serif text-2xl font-bold text-wood-100">Chess Practitioner</h1>
+                <span className="text-xs font-serif font-bold px-2 py-0.5 rounded wood-well text-brass border border-brass/30">
+                  Tier {progress.level}
                 </span>
               </div>
-              <p className="text-stone-400 text-sm font-semibold">{getRankTitle(progress.level)}</p>
+              <p className="text-wood-400 text-sm font-serif font-medium mt-0.5">{getRankTitle(progress.level)}</p>
             </div>
           </div>
 
           <div className="flex items-center gap-3">
-            <div className="px-4 py-2 rounded-xl bg-stone-900 border border-stone-800 text-center">
-              <span className="text-[10px] text-stone-500 uppercase font-bold block">Tactics Rating</span>
-              <span className="text-lg font-black text-emerald-400 font-mono">{progress.tacticsRating}</span>
+            <div className="px-4 py-2 rounded-xl wood-well border border-wood-750 text-center shadow-wood-inset">
+              <span className="text-[10px] text-wood-400 uppercase font-serif font-bold block">Tactics Rating</span>
+              <span className="text-lg font-bold text-brass font-mono">{progress.tacticsRating}</span>
             </div>
-            <div className="px-4 py-2 rounded-xl bg-orange-500/10 border border-orange-500/20 text-center">
-              <span className="text-[10px] text-orange-400 uppercase font-bold block">Streak</span>
-              <span className="text-lg font-black text-orange-400">{progress.streakDays} Days</span>
+            <div className="px-4 py-2 rounded-xl wood-well border border-wood-750 text-center shadow-wood-inset">
+              <span className="text-[10px] text-wood-400 uppercase font-serif font-bold block">Streak</span>
+              <span className="text-lg font-bold text-wood-100 font-mono">{progress.streakDays} Days</span>
             </div>
           </div>
         </div>
 
         {/* Level XP Bar */}
-        <div className="mt-6 pt-6 border-t border-stone-800/80">
-          <div className="flex justify-between text-xs font-bold mb-2">
-            <span className="text-stone-300">Experience Points: {progress.xp} XP</span>
-            <span className="text-amber-400">Next Level: {nextLevelXp} XP</span>
+        <div className="mt-6 pt-6 border-t border-wood-750">
+          <div className="flex justify-between text-xs font-mono font-medium mb-2">
+            <span className="text-wood-300">Experience Points: {progress.xp} XP</span>
+            <span className="text-brass">Next Tier: {nextLevelXp} XP</span>
           </div>
-          <div className="w-full bg-stone-900 rounded-full h-3 overflow-hidden border border-stone-800">
+          <div className="w-full wood-well rounded-full h-3 overflow-hidden border border-wood-750 p-0.5 shadow-wood-inset">
             <div
-              className="bg-gradient-to-r from-amber-500 to-amber-400 h-full rounded-full transition-all duration-500"
+              className="bg-brass h-full rounded-full transition-all duration-500 shadow-sm"
               style={{ width: `${progressPercent}%` }}
             />
           </div>
@@ -90,60 +95,60 @@ export const ProfileView: React.FC = () => {
 
       {/* Stats Breakdown Grid */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
-        <div className="bg-[#24211d] border border-stone-800 rounded-xl p-4 text-center">
-          <GraduationCap className="w-6 h-6 text-blue-400 mx-auto mb-2" />
-          <div className="text-2xl font-black text-white">
-            {progress.completedLessons.length} <span className="text-xs text-stone-500">/ {LESSONS.length}</span>
+        <div className="wood-panel rounded-xl p-4 text-center border border-wood-700/70 shadow-wood-raised">
+          <GraduationCap className="w-5 h-5 text-brass mx-auto mb-2" />
+          <div className="font-serif text-2xl font-bold text-wood-100">
+            {progress.completedLessons.length} <span className="text-xs font-sans text-wood-400 font-normal">/ {LESSONS.length}</span>
           </div>
-          <span className="text-[11px] text-stone-400 font-bold uppercase tracking-wider block mt-1">
+          <span className="text-[10px] text-wood-400 font-serif font-bold uppercase tracking-wider block mt-1">
             Lessons Mastered
           </span>
         </div>
 
-        <div className="bg-[#24211d] border border-stone-800 rounded-xl p-4 text-center">
-          <Zap className="w-6 h-6 text-emerald-400 mx-auto mb-2" />
-          <div className="text-2xl font-black text-white">{progress.solvedPuzzles.length}</div>
-          <span className="text-[11px] text-stone-400 font-bold uppercase tracking-wider block mt-1">
-            Puzzles Solved
+        <div className="wood-panel rounded-xl p-4 text-center border border-wood-700/70 shadow-wood-raised">
+          <Zap className="w-5 h-5 text-brass mx-auto mb-2" />
+          <div className="font-serif text-2xl font-bold text-wood-100 font-mono">{progress.solvedPuzzles.length}</div>
+          <span className="text-[10px] text-wood-400 font-serif font-bold uppercase tracking-wider block mt-1">
+            Tactics Solved
           </span>
         </div>
 
-        <div className="bg-[#24211d] border border-stone-800 rounded-xl p-4 text-center">
-          <BookOpen className="w-6 h-6 text-amber-400 mx-auto mb-2" />
-          <div className="text-2xl font-black text-white">
-            {progress.studiedOpenings.length} <span className="text-xs text-stone-500">/ {OPENINGS.length}</span>
+        <div className="wood-panel rounded-xl p-4 text-center border border-wood-700/70 shadow-wood-raised">
+          <BookOpen className="w-5 h-5 text-brass mx-auto mb-2" />
+          <div className="font-serif text-2xl font-bold text-wood-100">
+            {progress.studiedOpenings.length} <span className="text-xs font-sans text-wood-400 font-normal">/ {OPENINGS.length}</span>
           </div>
-          <span className="text-[11px] text-stone-400 font-bold uppercase tracking-wider block mt-1">
-            Openings Explored
+          <span className="text-[10px] text-wood-400 font-serif font-bold uppercase tracking-wider block mt-1">
+            Openings Studied
           </span>
         </div>
 
-        <div className="bg-[#24211d] border border-stone-800 rounded-xl p-4 text-center">
-          <Bot className="w-6 h-6 text-purple-400 mx-auto mb-2" />
-          <div className="text-2xl font-black text-white">
+        <div className="wood-panel rounded-xl p-4 text-center border border-wood-700/70 shadow-wood-raised">
+          <Bot className="w-5 h-5 text-brass mx-auto mb-2" />
+          <div className="font-serif text-2xl font-bold text-wood-100 font-mono">
             {progress.botRecord.wins}W - {progress.botRecord.losses}L
           </div>
-          <span className="text-[11px] text-stone-400 font-bold uppercase tracking-wider block mt-1">
-            Bot Record
+          <span className="text-[10px] text-wood-400 font-serif font-bold uppercase tracking-wider block mt-1">
+            Sparring Record
           </span>
         </div>
 
-        <div className="bg-[#24211d] border border-stone-800 rounded-xl p-4 text-center col-span-2 sm:col-span-1">
-          <History className="w-6 h-6 text-teal-400 mx-auto mb-2" />
-          <div className="text-2xl font-black text-white">
+        <div className="wood-panel rounded-xl p-4 text-center border border-wood-700/70 shadow-wood-raised col-span-2 sm:col-span-1">
+          <History className="w-5 h-5 text-brass mx-auto mb-2" />
+          <div className="font-serif text-2xl font-bold text-wood-100 font-mono">
             {games.length}{' '}
-            <span className="text-xs text-stone-500 font-normal">({analyzedCount} analyzed)</span>
+            <span className="text-xs font-sans text-wood-400 font-normal">({analyzedCount})</span>
           </div>
-          <span className="text-[11px] text-stone-400 font-bold uppercase tracking-wider block mt-1">
-            Saved Matches
+          <span className="text-[10px] text-wood-400 font-serif font-bold uppercase tracking-wider block mt-1">
+            Archived Matches
           </span>
         </div>
       </div>
 
       {/* GitHub Sync Status Card */}
-      <div className="bg-[#24211d] border border-stone-800 rounded-2xl p-5 shadow-lg flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      <div className="wood-panel rounded-2xl p-5 shadow-wood-raised border border-wood-700 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3.5">
-          <div className="w-10 h-10 rounded-xl bg-stone-900 border border-stone-700 flex items-center justify-center text-xl">
+          <div className="w-10 h-10 rounded-xl wood-well border border-wood-650 flex items-center justify-center text-brass shadow-wood-inset">
             {sync.user ? (
               <img
                 src={sync.user.avatarUrl}
@@ -151,32 +156,32 @@ export const ProfileView: React.FC = () => {
                 className="w-full h-full rounded-xl object-cover"
               />
             ) : (
-              '☁️'
+              <Cloud className="w-5 h-5 text-wood-400" />
             )}
           </div>
           <div>
-            <h3 className="text-sm font-bold text-white flex items-center gap-2">
+            <h3 className="text-sm font-serif font-bold text-wood-100 flex items-center gap-2">
               <span>Cross-Device Match Sync (GitHub)</span>
               {sync.user ? (
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 font-bold">
-                  Connected as @{sync.user.login}
+                <span className="text-[10px] px-2 py-0.5 rounded-md wood-well text-brass border border-brass/30 font-mono">
+                  @{sync.user.login}
                 </span>
               ) : (
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-stone-800 text-stone-400 border border-stone-700 font-bold">
-                  Offline / Local
+                <span className="text-[10px] px-2 py-0.5 rounded-md wood-well text-wood-400 border border-wood-750 font-mono">
+                  Local / Offline
                 </span>
               )}
             </h3>
-            <p className="text-xs text-stone-400 mt-0.5">
+            <p className="text-xs text-wood-400 mt-0.5">
               {sync.user
-                ? 'Your match history and coach reviews are synchronized across all your devices via a private GitHub Gist.'
-                : 'Connect your GitHub account in the My Games tab to synchronize matches between desktop, laptop, and phone.'}
+                ? 'Your match history and coach evaluations are synchronized across your devices via a private GitHub Gist.'
+                : 'Connect your GitHub token in the Archives tab to synchronize matches between desktop, laptop, and mobile.'}
             </p>
           </div>
         </div>
 
         {sync.lastSync && (
-          <span className="text-[11px] text-stone-500 font-medium shrink-0">
+          <span className="text-[11px] font-mono text-wood-400 shrink-0">
             Last synced: {new Date(sync.lastSync).toLocaleTimeString()}
           </span>
         )}
@@ -185,11 +190,11 @@ export const ProfileView: React.FC = () => {
       {/* Badges & Achievements Section */}
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-xl font-black text-white flex items-center gap-2">
-            <Award className="w-5 h-5 text-amber-400" />
-            <span>Achievements & Badges</span>
+          <h2 className="font-serif text-xl font-bold text-wood-100 flex items-center gap-2">
+            <Award className="w-5 h-5 text-brass" />
+            <span>Achievements & Classical Honors</span>
           </h2>
-          <span className="text-xs font-bold text-stone-400">
+          <span className="text-xs font-mono font-bold text-wood-400">
             {progress.achievements.length} / {ACHIEVEMENTS_LIST.length} Unlocked
           </span>
         </div>
@@ -202,43 +207,45 @@ export const ProfileView: React.FC = () => {
                 key={ach.id}
                 className={`p-4 rounded-xl border transition-all ${
                   isUnlocked
-                    ? 'bg-amber-500/10 border-amber-500/40 shadow-lg'
-                    : 'bg-[#1e1c18]/50 border-stone-800/80 opacity-60'
+                    ? 'wood-panel-raised border-brass/50 shadow-wood-raised'
+                    : 'wood-panel border-wood-800/80 opacity-55'
                 }`}
               >
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-2xl">{ach.icon}</span>
+                  <div className="w-8 h-8 rounded-lg wood-well border border-wood-700 flex items-center justify-center shadow-wood-inset">
+                    <AchievementIcon name={ach.icon} className={`w-4 h-4 ${isUnlocked ? 'text-brass' : 'text-wood-500'}`} />
+                  </div>
                   {isUnlocked ? (
-                    <CheckCircle2 className="w-4 h-4 text-amber-400" />
+                    <CheckCircle2 className="w-4 h-4 text-brass" />
                   ) : (
-                    <Lock className="w-4 h-4 text-stone-600" />
+                    <Lock className="w-4 h-4 text-wood-600" />
                   )}
                 </div>
-                <h4 className="text-sm font-bold text-white mb-1">{ach.title}</h4>
-                <p className="text-xs text-stone-400 leading-relaxed">{ach.description}</p>
+                <h4 className="font-serif text-sm font-bold text-wood-100 mb-1">{ach.title}</h4>
+                <p className="text-xs text-wood-400 leading-relaxed font-sans">{ach.description}</p>
               </div>
             );
           })}
         </div>
       </div>
 
-      {/* Data Management & GitHub Pages Deployment Info */}
-      <div className="bg-[#1e1c18] border border-stone-800 rounded-xl p-5 flex flex-col sm:flex-row items-center justify-between gap-4">
+      {/* Data Management & Static Storage Info */}
+      <div className="wood-panel border border-wood-700 rounded-xl p-5 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-wood-raised">
         <div className="space-y-1 text-center sm:text-left">
-          <span className="text-xs font-bold text-stone-300 block">
-            Offline & Static Storage (localStorage)
+          <span className="font-serif text-xs font-bold text-wood-200 block uppercase tracking-wider">
+            Offline & Local Browser Storage
           </span>
-          <p className="text-xs text-stone-500">
-            Your progress is securely remembered locally in your browser. Fully functional on GitHub Pages with no server needed!
+          <p className="text-xs text-wood-400">
+            Your progress is securely recorded in your browser localStorage. Fully functional offline with zero servers required.
           </p>
         </div>
 
         <button
           onClick={resetProgress}
-          className="shrink-0 px-3 py-1.5 rounded-lg bg-rose-950/30 hover:bg-rose-900/40 text-rose-300 border border-rose-900/50 text-xs font-semibold transition flex items-center gap-1.5"
+          className="shrink-0 px-3.5 py-1.5 rounded-lg wood-btn text-rose-300 border border-rose-900/40 text-xs font-semibold transition flex items-center gap-1.5"
         >
           <RotateCcw className="w-3.5 h-3.5" />
-          <span>Reset Progress</span>
+          <span>Reset Record</span>
         </button>
       </div>
     </div>

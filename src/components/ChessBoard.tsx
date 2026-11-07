@@ -212,184 +212,190 @@ export const ChessBoard: React.FC<ChessBoardProps> = ({
   const draggedPiece = drag?.moved ? game.get(drag.from) : null;
 
   return (
-    <div className="relative select-none w-full max-w-[540px] aspect-square rounded-xl shadow-2xl p-2.5 bg-[#2b2723] border border-[#3f3b35]">
-      {/* Chessboard Grid */}
-      <div
-        ref={boardRef}
-        onPointerMove={handlePointerMove}
-        onPointerUp={(e) => finishDrag(e)}
-        onPointerCancel={(e) => finishDrag(e, true)}
-        style={{ touchAction: canInteract ? 'none' : undefined }}
-        className="relative w-full h-full grid grid-cols-8 grid-rows-8 rounded-lg overflow-hidden border border-black/30 shadow-inner"
-      >
-        {displayedRanks.map((rank, rowIdx) =>
-          displayedFiles.map((file, colIdx) => {
-            const square = `${file}${rank}` as Square;
-            const isLight = (colIdx + rowIdx) % 2 === 0;
-            const piece = game.get(square);
-            const isSelected = selectedSquare === square;
-            const isHighlighted = highlightSquares.includes(square);
-            const isLastMove = lastMove?.from === square || lastMove?.to === square;
-            const isCheck = inCheckSquare === square;
-            const isDragOrigin = drag?.moved && drag.from === square;
+    <div className="relative select-none w-full max-w-[540px] aspect-square rounded-2xl wood-board-bezel p-3 sm:p-3.5 transition-all">
+      {/* Subtle Routed Inset Rim */}
+      <div className="w-full h-full p-1 rounded-xl wood-well border border-wood-850">
+        {/* Chessboard Grid */}
+        <div
+          ref={boardRef}
+          onPointerMove={handlePointerMove}
+          onPointerUp={(e) => finishDrag(e)}
+          onPointerCancel={(e) => finishDrag(e, true)}
+          style={{ touchAction: canInteract ? 'none' : undefined }}
+          className="relative w-full h-full grid grid-cols-8 grid-rows-8 rounded-lg overflow-hidden shadow-inner border border-[#2b1b11]"
+        >
+          {displayedRanks.map((rank, rowIdx) =>
+            displayedFiles.map((file, colIdx) => {
+              const square = `${file}${rank}` as Square;
+              const isLight = (colIdx + rowIdx) % 2 === 0;
+              const piece = game.get(square);
+              const isSelected = selectedSquare === square;
+              const isHighlighted = highlightSquares.includes(square);
+              const isLastMove = lastMove?.from === square || lastMove?.to === square;
+              const isCheck = inCheckSquare === square;
+              const isDragOrigin = drag?.moved && drag.from === square;
 
-            const legalMove = legalMoves.find((m) => m.to === square);
-            const isLegalDestination = Boolean(legalMove);
-            const isCapture = Boolean(legalMove && (piece || legalMove.flags.includes('e')));
-            const isDropTarget = drag?.moved && hoverSquare === square && isLegalDestination;
+              const legalMove = legalMoves.find((m) => m.to === square);
+              const isLegalDestination = Boolean(legalMove);
+              const isCapture = Boolean(legalMove && (piece || legalMove.flags.includes('e')));
+              const isDropTarget = drag?.moved && hoverSquare === square && isLegalDestination;
 
-            let bgClass = isLight ? 'bg-[#eeeed2]' : 'bg-[#769656]';
-            if (isLastMove) bgClass = isLight ? 'bg-[#f7ec7d]' : 'bg-[#baca44]';
-            if (isSelected) bgClass = 'bg-[#bbd871]';
-            if (isCheck) bgClass = 'bg-rose-600/90 animate-pulse';
+              // Handcrafted Walnut & Boxwood Wood Tones
+              let bgClass = isLight ? 'bg-[#e8d7b7]' : 'bg-[#895228]';
+              if (isLastMove) bgClass = isLight ? 'bg-[#e0b457]' : 'bg-[#ab7834]';
+              if (isSelected) bgClass = 'bg-[#c79948]';
+              if (isCheck) bgClass = 'bg-[#8f2424]';
 
-            const pieceInteractive = canInteract && piece && piece.color === game.turn();
+              const pieceInteractive = canInteract && piece && piece.color === game.turn();
 
-            return (
-              <div
-                key={square}
-                onPointerDown={(e) => handlePointerDown(e, square)}
-                className={`relative flex items-center justify-center transition-colors duration-100 ${bgClass} ${
-                  pieceInteractive ? (drag ? 'cursor-grabbing' : 'cursor-grab') : canInteract ? 'cursor-pointer' : ''
-                } ${customSquareStyles[square] || ''}`}
-              >
-                {isHighlighted && !isSelected && (
-                  <div className="absolute inset-0 bg-yellow-400/35 ring-4 ring-yellow-400 ring-inset z-10 animate-pulse pointer-events-none rounded-sm" />
-                )}
-                {isDropTarget && (
-                  <div className="absolute inset-0 ring-4 ring-inset ring-white/70 z-10 pointer-events-none" />
-                )}
-
-                {colIdx === 0 && (
-                  <span
-                    className={`absolute top-0.5 left-1 text-[10px] sm:text-xs font-bold leading-none pointer-events-none ${
-                      isLight ? 'text-[#769656]' : 'text-[#eeeed2]'
-                    }`}
-                  >
-                    {rank}
-                  </span>
-                )}
-                {rowIdx === 7 && (
-                  <span
-                    className={`absolute bottom-0.5 right-1 text-[10px] sm:text-xs font-bold leading-none pointer-events-none ${
-                      isLight ? 'text-[#769656]' : 'text-[#eeeed2]'
-                    }`}
-                  >
-                    {file}
-                  </span>
-                )}
-
-                {piece && (
-                  <div
-                    className={`w-[84%] h-[84%] flex items-center justify-center z-10 pointer-events-none transition-opacity ${
-                      isDragOrigin ? 'opacity-30' : ''
-                    }`}
-                  >
-                    <ChessPiece type={piece.type} color={piece.color} />
-                  </div>
-                )}
-
-                {isLegalDestination && !isCapture && (
-                  <div className="absolute z-20 w-3.5 h-3.5 sm:w-4 sm:h-4 rounded-full bg-black/25 pointer-events-none" />
-                )}
-                {isLegalDestination && isCapture && (
-                  <div className="absolute z-20 inset-0 m-0.5 sm:m-1 rounded-full border-4 sm:border-[5px] border-black/30 pointer-events-none" />
-                )}
-
-                {badge && badge.square === square && (
-                  <div
-                    className="absolute -top-0.5 -right-0.5 z-30 min-w-[42%] h-[42%] px-0.5 rounded-full flex items-center justify-center text-[10px] sm:text-xs font-black text-white shadow-lg border-2 border-white/90 pointer-events-none"
-                    style={{ backgroundColor: badge.color }}
-                  >
-                    {badge.label}
-                  </div>
-                )}
-              </div>
-            );
-          })
-        )}
-
-        {/* SVG Overlay for Arrows */}
-        {allArrows.length > 0 && (
-          <svg className="absolute inset-0 w-full h-full pointer-events-none z-30" viewBox="0 0 100 100">
-            <defs>
-              {allArrows.map((a, i) => (
-                <marker key={i} id={`arrowhead-${i}`} markerWidth="4" markerHeight="4" refX="2.2" refY="2" orient="auto">
-                  <polygon points="0 0, 4 2, 0 4" fill={a.color || '#f59e0b'} />
-                </marker>
-              ))}
-            </defs>
-            {allArrows.map((a, i) => {
-              const start = getSquareCoordinates(a.from);
-              const end = getSquareCoordinates(a.to);
-              // Shorten the line a bit so the head sits inside the target square
-              const dx = end.x - start.x;
-              const dy = end.y - start.y;
-              const len = Math.hypot(dx, dy) || 1;
-              const shrink = 3.2;
               return (
-                <line
-                  key={i}
-                  x1={start.x}
-                  y1={start.y}
-                  x2={end.x - (dx / len) * shrink}
-                  y2={end.y - (dy / len) * shrink}
-                  stroke={a.color || '#f59e0b'}
-                  strokeWidth="2.4"
-                  strokeLinecap="round"
-                  strokeDasharray={a.dashed ? '3 2.2' : undefined}
-                  opacity="0.85"
-                  markerEnd={`url(#arrowhead-${i})`}
-                />
+                <div
+                  key={square}
+                  onPointerDown={(e) => handlePointerDown(e, square)}
+                  className={`relative flex items-center justify-center transition-colors duration-100 ${bgClass} ${
+                    pieceInteractive ? (drag ? 'cursor-grabbing' : 'cursor-grab') : canInteract ? 'cursor-pointer' : ''
+                  } ${customSquareStyles[square] || ''}`}
+                >
+                  {isHighlighted && !isSelected && (
+                    <div className="absolute inset-0 bg-[#d4a359]/35 ring-4 ring-[#d4a359] ring-inset z-10 pointer-events-none rounded-sm" />
+                  )}
+                  {isDropTarget && (
+                    <div className="absolute inset-0 ring-4 ring-inset ring-brass/80 z-10 pointer-events-none" />
+                  )}
+
+                  {/* Rank labels on left file */}
+                  {colIdx === 0 && (
+                    <span
+                      className={`absolute top-0.5 left-1 text-[10px] sm:text-xs font-serif font-bold leading-none pointer-events-none ${
+                        isLight ? 'text-[#7d4e2a]' : 'text-[#eedfc2]'
+                      }`}
+                    >
+                      {rank}
+                    </span>
+                  )}
+                  {/* File labels on bottom rank */}
+                  {rowIdx === 7 && (
+                    <span
+                      className={`absolute bottom-0.5 right-1 text-[10px] sm:text-xs font-serif font-bold leading-none pointer-events-none ${
+                        isLight ? 'text-[#7d4e2a]' : 'text-[#eedfc2]'
+                      }`}
+                    >
+                      {file}
+                    </span>
+                  )}
+
+                  {piece && (
+                    <div
+                      className={`w-[84%] h-[84%] flex items-center justify-center z-10 pointer-events-none transition-opacity ${
+                        isDragOrigin ? 'opacity-30' : ''
+                      }`}
+                    >
+                      <ChessPiece type={piece.type} color={piece.color} />
+                    </div>
+                  )}
+
+                  {/* Tactile debossed destination dots */}
+                  {isLegalDestination && !isCapture && (
+                    <div className="absolute z-20 w-3.5 h-3.5 sm:w-4 sm:h-4 rounded-full bg-[#1c120a]/35 shadow-inner pointer-events-none" />
+                  )}
+                  {isLegalDestination && isCapture && (
+                    <div className="absolute z-20 inset-0 m-0.5 sm:m-1 rounded-full border-4 sm:border-[5px] border-[#1c120a]/40 pointer-events-none" />
+                  )}
+
+                  {badge && badge.square === square && (
+                    <div
+                      className="absolute -top-0.5 -right-0.5 z-30 min-w-[42%] h-[42%] px-1 rounded-full flex items-center justify-center text-[10px] sm:text-xs font-mono font-black text-white shadow-md border border-white/80 pointer-events-none"
+                      style={{ backgroundColor: badge.color }}
+                    >
+                      {badge.label}
+                    </div>
+                  )}
+                </div>
               );
-            })}
-          </svg>
-        )}
+            })
+          )}
 
-        {/* Piece following the pointer while dragging */}
-        {drag?.moved && draggedPiece && (
-          <div
-            className="absolute z-40 pointer-events-none drop-shadow-2xl"
-            style={{
-              width: '12.5%',
-              height: '12.5%',
-              left: `${drag.x}px`,
-              top: `${drag.y}px`,
-              transform: 'translate(-50%, -50%) scale(1.12)',
-            }}
-          >
-            <ChessPiece type={draggedPiece.type} color={draggedPiece.color} />
-          </div>
-        )}
-
-        {/* Promotion Dialog Modal */}
-        {pendingPromotion && (
-          <div className="absolute inset-0 bg-black/75 z-50 flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in">
-            <div className="bg-[#262421] border border-amber-600/40 rounded-xl p-4 shadow-2xl text-center max-w-xs">
-              <h4 className="text-sm font-semibold text-amber-300 mb-3 tracking-wide uppercase">Promote Pawn to:</h4>
-              <div className="grid grid-cols-4 gap-2">
-                {(['q', 'n', 'r', 'b'] as const).map((p) => (
-                  <button
-                    key={p}
-                    onClick={() => handlePromotionSelect(p)}
-                    className="w-14 h-14 bg-[#34312d] hover:bg-[#4a4640] border border-stone-600 rounded-lg flex items-center justify-center p-2 transition hover:scale-110 active:scale-95 shadow"
-                  >
-                    <ChessPiece type={p} color={game.turn()} />
-                  </button>
+          {/* SVG Overlay for Handcrafted Brass Arrows */}
+          {allArrows.length > 0 && (
+            <svg className="absolute inset-0 w-full h-full pointer-events-none z-30" viewBox="0 0 100 100">
+              <defs>
+                {allArrows.map((a, i) => (
+                  <marker key={i} id={`arrowhead-${i}`} markerWidth="4" markerHeight="4" refX="2.2" refY="2" orient="auto">
+                    <polygon points="0 0, 4 2, 0 4" fill={a.color || '#d4a359'} />
+                  </marker>
                 ))}
-              </div>
-              <button
-                onClick={() => {
-                  setPendingPromotion(null);
-                  setSelectedSquare(null);
-                }}
-                className="mt-3 text-xs text-stone-400 hover:text-white"
-              >
-                Cancel
-              </button>
+              </defs>
+              {allArrows.map((a, i) => {
+                const start = getSquareCoordinates(a.from);
+                const end = getSquareCoordinates(a.to);
+                const dx = end.x - start.x;
+                const dy = end.y - start.y;
+                const len = Math.hypot(dx, dy) || 1;
+                const shrink = 3.2;
+                return (
+                  <line
+                    key={i}
+                    x1={start.x}
+                    y1={start.y}
+                    x2={end.x - (dx / len) * shrink}
+                    y2={end.y - (dy / len) * shrink}
+                    stroke={a.color || '#d4a359'}
+                    strokeWidth="2.4"
+                    strokeLinecap="round"
+                    strokeDasharray={a.dashed ? '3 2.2' : undefined}
+                    opacity="0.9"
+                    markerEnd={`url(#arrowhead-${i})`}
+                  />
+                );
+              })}
+            </svg>
+          )}
+
+          {/* Piece following the pointer while dragging */}
+          {drag?.moved && draggedPiece && (
+            <div
+              className="absolute z-40 pointer-events-none drop-shadow-2xl"
+              style={{
+                width: '12.5%',
+                height: '12.5%',
+                left: `${drag.x}px`,
+                top: `${drag.y}px`,
+                transform: 'translate(-50%, -50%) scale(1.12)',
+              }}
+            >
+              <ChessPiece type={draggedPiece.type} color={draggedPiece.color} />
             </div>
-          </div>
-        )}
+          )}
+
+          {/* Promotion Dialog Modal: Handcrafted Wooden Box */}
+          {pendingPromotion && (
+            <div className="absolute inset-0 bg-wood-950/80 z-50 flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in">
+              <div className="wood-panel-raised border border-brass/50 rounded-2xl p-5 shadow-wood-raised-lg text-center max-w-xs">
+                <h4 className="text-xs font-serif font-bold text-brass mb-3 tracking-widest uppercase">Promote Pawn</h4>
+                <div className="grid grid-cols-4 gap-2.5">
+                  {(['q', 'n', 'r', 'b'] as const).map((p) => (
+                    <button
+                      key={p}
+                      onClick={() => handlePromotionSelect(p)}
+                      className="w-14 h-14 wood-btn rounded-xl flex items-center justify-center p-2.5 border border-wood-650 hover:border-brass transition"
+                    >
+                      <ChessPiece type={p} color={game.turn()} />
+                    </button>
+                  ))}
+                </div>
+                <button
+                  onClick={() => {
+                    setPendingPromotion(null);
+                    setSelectedSquare(null);
+                  }}
+                  className="mt-3 text-xs text-wood-400 hover:text-wood-200 transition"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

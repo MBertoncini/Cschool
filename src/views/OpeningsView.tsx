@@ -90,19 +90,16 @@ export const OpeningsView: React.FC = () => {
     if (!expectedMove) return;
 
     if (move.from === expectedMove.from && move.to === expectedMove.to) {
-      // User made the correct theoretical move!
       sounds.playSuccess();
       const nextPly = currentPly + 1;
       goToPly(nextPly);
 
-      // Check if opening sequence finished
       if (nextPly >= selectedOpening.moves.length) {
         setPracticeSuccess(true);
         sounds.playSuccess();
         return;
       }
 
-      // If next move is opponent's move, play it automatically after a brief delay
       const opponentMove = selectedOpening.moves[nextPly];
       if (opponentMove) {
         setTimeout(() => {
@@ -124,17 +121,17 @@ export const OpeningsView: React.FC = () => {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-6 animate-in fade-in">
       {/* Top Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-stone-800">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-wood-750">
         <div>
-          <div className="inline-flex items-center gap-1.5 text-xs font-bold text-amber-400 uppercase tracking-widest mb-1">
+          <div className="inline-flex items-center gap-1.5 text-xs font-serif font-bold text-brass uppercase tracking-widest mb-1">
             <BookOpen className="w-4 h-4" />
-            <span>Openings Repertoire & Trainer</span>
+            <span>Opening Principles & Plans</span>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-black text-white">
-            Master Every Opening Idea
+          <h1 className="font-serif text-2xl sm:text-3xl font-bold text-wood-100">
+            Master Opening Architecture
           </h1>
-          <p className="text-stone-400 text-xs sm:text-sm mt-1">
-            Learn the strategic plans and the "why" behind each move instead of blindly memorizing notation.
+          <p className="text-wood-400 text-xs sm:text-sm mt-1 font-sans">
+            Comprehend the grandmaster motives and pawn structures behind each opening rather than memorizing blind notation.
           </p>
         </div>
 
@@ -145,27 +142,27 @@ export const OpeningsView: React.FC = () => {
             goToPly(0);
             setPracticeSuccess(false);
           }}
-          className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 border ${
+          className={`px-4 py-2 rounded-xl text-xs font-serif font-bold uppercase tracking-wider transition flex items-center gap-2 border ${
             isPracticeMode
-              ? 'bg-emerald-600 border-emerald-500 text-white shadow-lg'
-              : 'bg-stone-800 border-stone-700 text-stone-200 hover:bg-stone-700'
+              ? 'wood-btn-brass text-wood-950 shadow-brass-raised'
+              : 'wood-btn text-wood-200 border-wood-650'
           }`}
         >
-          <Sparkles className="w-4 h-4 text-emerald-400" />
-          <span>{isPracticeMode ? 'Exit Trainer' : 'Test Your Memory'}</span>
+          <Sparkles className="w-4 h-4" />
+          <span>{isPracticeMode ? 'Exit Trainer' : 'Test Memory'}</span>
         </button>
       </div>
 
       {/* Opening Selector Carousel/Pills */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-thin">
+      <div className="flex items-center gap-2 overflow-x-auto p-1 wood-well rounded-xl border border-wood-850">
         {OPENINGS.map((op) => (
           <button
             key={op.id}
             onClick={() => setSelectedOpening(op)}
-            className={`px-3.5 py-2 rounded-xl text-xs font-bold shrink-0 transition flex items-center gap-2 ${
+            className={`px-3.5 py-2 rounded-lg text-xs font-serif font-bold shrink-0 transition flex items-center gap-2 ${
               selectedOpening.id === op.id
-                ? 'bg-amber-500 text-stone-950 shadow-md scale-105'
-                : 'bg-stone-800/80 text-stone-300 hover:bg-stone-700 border border-stone-700'
+                ? 'wood-tab-active text-brass font-bold'
+                : 'text-wood-400 hover:text-wood-200'
             }`}
           >
             <span>{op.name}</span>
@@ -192,12 +189,12 @@ export const OpeningsView: React.FC = () => {
 
           {/* Stepper Controls */}
           {!isPracticeMode ? (
-            <div className="w-full max-w-[540px] mt-4 flex items-center justify-between bg-[#24211d] border border-stone-800 rounded-xl p-2.5 shadow-md">
-              <div className="flex items-center gap-1">
+            <div className="w-full max-w-[540px] mt-4 flex items-center justify-between wood-panel border border-wood-700 rounded-xl p-2.5 shadow-wood-raised">
+              <div className="flex items-center gap-1.5">
                 <button
                   onClick={() => goToPly(0)}
                   disabled={currentPly === 0}
-                  className="p-2 rounded-lg bg-stone-800 hover:bg-stone-700 disabled:opacity-30 text-stone-200"
+                  className="p-2 rounded-lg wood-btn disabled:opacity-30 text-wood-200"
                   title="First Move"
                 >
                   <ChevronsLeft className="w-4 h-4" />
@@ -205,32 +202,32 @@ export const OpeningsView: React.FC = () => {
                 <button
                   onClick={handlePrev}
                   disabled={currentPly === 0}
-                  className="p-2 rounded-lg bg-stone-800 hover:bg-stone-700 disabled:opacity-30 text-stone-200"
+                  className="p-2 rounded-lg wood-btn disabled:opacity-30 text-wood-200"
                   title="Previous Move"
                 >
                   <ChevronLeft className="w-4 h-4" />
                 </button>
               </div>
 
-              <div className="text-center font-bold text-xs text-stone-300">
+              <div className="text-center font-bold text-xs text-wood-300">
                 {currentPly === 0 ? (
-                  <span>Starting Position</span>
+                  <span className="font-serif text-wood-400">Starting Position</span>
                 ) : (
-                  <span>
+                  <span className="font-serif">
                     Move {Math.ceil(currentPly / 2)} ({currentPly % 2 === 1 ? 'White' : 'Black'}:{' '}
-                    <span className="text-amber-400 font-mono text-sm">{currentMoveAnnotation?.san}</span>)
+                    <span className="text-brass font-mono font-bold text-sm">{currentMoveAnnotation?.san}</span>)
                   </span>
                 )}
-                <span className="block text-[10px] text-stone-500 font-medium">
+                <span className="block text-[10px] text-wood-500 font-mono mt-0.5">
                   Ply {currentPly} / {selectedOpening.moves.length}
                 </span>
               </div>
 
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-1.5">
                 <button
                   onClick={handleNext}
                   disabled={currentPly >= selectedOpening.moves.length}
-                  className="p-2 rounded-lg bg-amber-500 hover:bg-amber-400 disabled:opacity-30 text-stone-950 font-bold"
+                  className="p-2 rounded-lg wood-btn-brass disabled:opacity-30 text-wood-950 font-bold"
                   title="Next Move"
                 >
                   <ChevronRight className="w-4 h-4" />
@@ -238,7 +235,7 @@ export const OpeningsView: React.FC = () => {
                 <button
                   onClick={() => goToPly(selectedOpening.moves.length)}
                   disabled={currentPly >= selectedOpening.moves.length}
-                  className="p-2 rounded-lg bg-stone-800 hover:bg-stone-700 disabled:opacity-30 text-stone-200"
+                  className="p-2 rounded-lg wood-btn disabled:opacity-30 text-wood-200"
                   title="Last Move"
                 >
                   <ChevronsRight className="w-4 h-4" />
@@ -246,128 +243,138 @@ export const OpeningsView: React.FC = () => {
               </div>
             </div>
           ) : (
-            /* Practice Mode Banner */
-            <div className="w-full max-w-[540px] mt-4 p-3 rounded-xl bg-[#24211d] border border-stone-800 text-center space-y-2">
+            /* Practice Feedback Bar */
+            <div className="w-full max-w-[540px] mt-4 wood-panel border border-wood-700 rounded-xl p-4 shadow-wood-raised text-center">
               {practiceSuccess ? (
-                <div className="text-emerald-400 font-bold text-sm flex items-center justify-center gap-1.5">
-                  <CheckCircle2 className="w-4 h-4" />
-                  <span>Flawless! You played the full theoretical line from memory!</span>
+                <div className="space-y-2 animate-in zoom-in-95">
+                  <div className="w-10 h-10 rounded-full wood-well border border-brass flex items-center justify-center text-brass mx-auto shadow-wood-inset">
+                    <CheckCircle2 className="w-5 h-5 text-brass" />
+                  </div>
+                  <h3 className="font-serif text-base font-bold text-wood-100">
+                    Opening Sequence Mastered!
+                  </h3>
+                  <p className="text-xs text-wood-400">
+                    You accurately recalled all theoretical moves of the {selectedOpening.name}.
+                  </p>
+                  <button
+                    onClick={() => {
+                      goToPly(0);
+                      setPracticeSuccess(false);
+                    }}
+                    className="mt-2 px-4 py-2 rounded-xl wood-btn text-xs font-serif font-bold text-brass border border-brass/30 inline-flex items-center gap-1.5"
+                  >
+                    <RotateCcw className="w-3.5 h-3.5" />
+                    <span>Train Again</span>
+                  </button>
                 </div>
               ) : (
-                <div className="text-xs text-stone-300">
-                  Play the theoretical moves on the board! Move {Math.ceil((currentPly + 1) / 2)} (
-                  {currentPly % 2 === 0 ? 'White' : 'Black'}).
+                <div className="space-y-1">
+                  <span className="text-xs font-serif font-bold text-brass uppercase tracking-wider block">
+                    Interactive Recall Mode
+                  </span>
+                  <p className="text-xs text-wood-300">
+                    Play the next theoretical move on the board from memory!
+                  </p>
+                  <span className="text-[10px] text-wood-500 font-mono block">
+                    Progress: {currentPly} / {selectedOpening.moves.length} plies
+                  </span>
                 </div>
               )}
-              <button
-                onClick={() => {
-                  goToPly(0);
-                  setPracticeSuccess(false);
-                }}
-                className="inline-flex items-center gap-1 px-3 py-1 rounded bg-stone-800 hover:bg-stone-700 text-stone-300 text-xs font-semibold"
-              >
-                <RotateCcw className="w-3 h-3" /> Reset Practice
-              </button>
             </div>
           )}
         </div>
 
-        {/* Right: Theory & Strategic Plans */}
+        {/* Right: Opening Principles & Move Analysis */}
         <div className="lg:col-span-5 space-y-4">
-          {/* Opening Header */}
-          <div className="bg-[#24211d] border border-stone-800 rounded-xl p-5 shadow-lg space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-amber-400 uppercase tracking-wider font-mono">
-                {selectedOpening.eco} • {selectedOpening.difficulty}
-              </span>
-              <span className="text-xs font-bold px-2 py-0.5 rounded bg-stone-800 text-stone-300">
-                Plays as: {selectedOpening.side}
+          {/* Main Theory & Overview Box */}
+          <div className="wood-panel border border-wood-700 rounded-xl p-5 shadow-wood-raised space-y-3">
+            <div className="flex items-center justify-between border-b border-wood-750 pb-2">
+              <span className="font-serif font-bold text-base text-wood-100">{selectedOpening.name}</span>
+              <span className="font-mono text-xs px-2 py-0.5 rounded wood-well text-brass border border-wood-750">
+                {selectedOpening.eco}
               </span>
             </div>
 
-            <h2 className="text-xl font-black text-white">{selectedOpening.name}</h2>
-            <p className="text-xs text-stone-300 leading-relaxed">{selectedOpening.overview}</p>
+            <p className="text-xs sm:text-sm text-wood-300 leading-relaxed font-sans">
+              {selectedOpening.overview}
+            </p>
+
+            {/* Strategic Plans Checklist */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 text-xs">
+              <div className="wood-well p-3 rounded-lg border border-wood-800 space-y-1 shadow-wood-inset">
+                <span className="font-serif font-bold text-wood-200 flex items-center gap-1">
+                  <Swords className="w-3.5 h-3.5 text-brass" /> White Plan:
+                </span>
+                <ul className="text-[11px] text-wood-400 space-y-1 list-disc list-inside">
+                  {selectedOpening.whiteMainPlan.map((p, i) => (
+                    <li key={i}>{p}</li>
+                  ))}
+                </ul>
+              </div>
+
+              <div className="wood-well p-3 rounded-lg border border-wood-800 space-y-1 shadow-wood-inset">
+                <span className="font-serif font-bold text-wood-200 flex items-center gap-1">
+                  <Shield className="w-3.5 h-3.5 text-wood-400" /> Black Plan:
+                </span>
+                <ul className="text-[11px] text-wood-400 space-y-1 list-disc list-inside">
+                  {selectedOpening.blackMainPlan.map((p, i) => (
+                    <li key={i}>{p}</li>
+                  ))}
+                </ul>
+              </div>
+            </div>
           </div>
 
-          {/* Move Annotation */}
-          {currentMoveAnnotation && !isPracticeMode && (
-            <div className="bg-[#1e1c18] border border-stone-800 rounded-xl p-5 space-y-3 shadow-xl animate-in fade-in">
-              <div className="flex items-center justify-between border-b border-stone-800 pb-2">
-                <span className="text-lg font-black text-amber-400 font-mono">
+          {/* Current Move Annotation Box */}
+          <div className="wood-panel-raised border border-wood-650 rounded-xl p-5 shadow-wood-raised-lg space-y-3">
+            <div className="flex items-center justify-between border-b border-wood-750 pb-2">
+              <span className="text-[10px] font-serif font-bold uppercase tracking-wider text-wood-400">
+                Move {currentPly > 0 ? Math.ceil(currentPly / 2) : 0} Analysis
+              </span>
+              {currentMoveAnnotation && (
+                <span className="font-mono text-xs font-bold text-brass">
                   {currentMoveAnnotation.san}
                 </span>
-                <span className="text-xs text-stone-400">
-                  {currentPly % 2 === 1 ? 'White move' : 'Black response'}
-                </span>
-              </div>
-
-              <div>
-                <h4 className="text-xs font-bold text-stone-400 uppercase tracking-wider mb-1">
-                  Why play this move?
-                </h4>
-                <p className="text-xs text-stone-200 leading-relaxed font-medium">
-                  {currentMoveAnnotation.commentary}
-                </p>
-              </div>
-
-              <div className="p-3 bg-amber-500/10 border-l-4 border-amber-500 rounded-r-lg">
-                <div className="text-[11px] font-bold text-amber-400 uppercase tracking-wider mb-0.5">
-                  Grandmaster Logic
-                </div>
-                <p className="text-xs text-stone-200 italic">
-                  "{currentMoveAnnotation.grandmasterLogic}"
-                </p>
-              </div>
-
-              {currentMoveAnnotation.whiteThreat && (
-                <div className="text-xs text-rose-300 bg-rose-950/30 p-2 rounded border border-rose-900/40">
-                  <b>Threat:</b> {currentMoveAnnotation.whiteThreat}
-                </div>
               )}
             </div>
-          )}
 
-          {/* Master Plans for White and Black */}
-          <div className="bg-[#24211d] border border-stone-800 rounded-xl p-5 space-y-4 shadow-lg">
-            {/* White Plan */}
-            <div className="space-y-1.5">
-              <h4 className="text-xs font-bold text-emerald-400 uppercase tracking-wider flex items-center gap-1.5">
-                <Swords className="w-3.5 h-3.5" />
-                <span>White's Strategic Plan</span>
-              </h4>
-              <ul className="text-xs text-stone-300 space-y-1 pl-4 list-disc marker:text-emerald-500">
-                {selectedOpening.whiteMainPlan.map((plan, i) => (
-                  <li key={i}>{plan}</li>
-                ))}
-              </ul>
-            </div>
+            {currentMoveAnnotation ? (
+              <div className="space-y-3 animate-in fade-in">
+                <p className="text-xs text-wood-200 leading-relaxed font-sans">
+                  {currentMoveAnnotation.commentary}
+                </p>
 
-            {/* Black Plan */}
-            <div className="space-y-1.5 pt-2 border-t border-stone-800">
-              <h4 className="text-xs font-bold text-blue-400 uppercase tracking-wider flex items-center gap-1.5">
-                <Shield className="w-3.5 h-3.5" />
-                <span>Black's Counter Plan</span>
-              </h4>
-              <ul className="text-xs text-stone-300 space-y-1 pl-4 list-disc marker:text-blue-500">
-                {selectedOpening.blackMainPlan.map((plan, i) => (
-                  <li key={i}>{plan}</li>
-                ))}
-              </ul>
-            </div>
-
-            {/* Pitfalls */}
-            <div className="space-y-1.5 pt-2 border-t border-stone-800">
-              <h4 className="text-xs font-bold text-rose-400 uppercase tracking-wider flex items-center gap-1.5">
-                <AlertTriangle className="w-3.5 h-3.5" />
-                <span>Common Beginner Mistakes</span>
-              </h4>
-              <ul className="text-xs text-stone-300 space-y-1 pl-4 list-disc marker:text-rose-500">
-                {selectedOpening.commonMistakes.map((mistake, i) => (
-                  <li key={i}>{mistake}</li>
-                ))}
-              </ul>
-            </div>
+                <div className="wood-well p-3.5 rounded-xl border border-brass/30 space-y-1 shadow-wood-inset">
+                  <div className="flex items-center gap-1.5 text-brass font-serif font-bold text-[11px] uppercase tracking-wider">
+                    <Sparkles className="w-3.5 h-3.5 text-brass" />
+                    <span>Grandmaster Architecture:</span>
+                  </div>
+                  <p className="text-xs text-wood-100 leading-relaxed font-sans">
+                    {currentMoveAnnotation.grandmasterLogic}
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <p className="text-xs text-wood-400 italic font-serif">
+                Select a move using the arrows under the board to inspect its theoretical motive.
+              </p>
+            )}
           </div>
+
+          {/* Common Pitfalls Box */}
+          {selectedOpening.commonMistakes && selectedOpening.commonMistakes.length > 0 && (
+            <div className="wood-panel border border-wood-700/80 rounded-xl p-4 shadow-wood-raised space-y-2">
+              <div className="flex items-center gap-1.5 text-xs font-serif font-bold text-wood-300 uppercase tracking-wider">
+                <AlertTriangle className="w-3.5 h-3.5 text-brass" />
+                <span>Common Pitfalls</span>
+              </div>
+              <ul className="text-xs text-wood-400 space-y-1 list-disc list-inside font-sans">
+                {selectedOpening.commonMistakes.map((m, i) => (
+                  <li key={i}>{m}</li>
+                ))}
+              </ul>
+            </div>
+          )}
         </div>
       </div>
     </div>

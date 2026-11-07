@@ -1,7 +1,6 @@
 import React, { useState, useRef, useMemo, useEffect } from 'react';
 import { Chess, Square, Move } from 'chess.js';
 import {
-  Bot,
   RotateCcw,
   Lightbulb,
   Flag,
@@ -11,11 +10,13 @@ import {
   RefreshCw,
   MessageSquare,
   History,
+  Award,
 } from 'lucide-react';
 import { BotPersonality } from '../types/chess';
 import { BOTS } from '../data/bots';
 import { ChessBoard } from '../components/ChessBoard';
 import { EvaluationBar } from '../components/EvaluationBar';
+import { BotAvatar } from '../components/BotAvatar';
 import { findBotMove, getEvalBarScore } from '../engine/botEngine';
 import { useProgress } from '../context/ProgressContext';
 import { sounds } from '../engine/sound';
@@ -37,8 +38,6 @@ export const PlayBotView: React.FC<PlayBotViewProps> = ({ onReviewGame }) => {
   const { upsertGame } = useGames();
 
   const [selectedBot, setSelectedBot] = useState<BotPersonality>(BOTS[0]);
-  // The SAN move list is the single source of truth; the Chess instance is derived from it
-  // (rebuilding from a FEN would lose the history needed for undo and repetition draws).
   const [moves, setMoves] = useState<string[]>([]);
   const game = useMemo(() => buildGame(moves), [moves]);
   const [playerColor, setPlayerColor] = useState<'w' | 'b'>('w');
@@ -119,154 +118,177 @@ export const PlayBotView: React.FC<PlayBotViewProps> = ({ onReviewGame }) => {
     }
   };
 
-  const triggerBotTurn = (currentMoves: string[], bot: BotPersonality) => {
-    const matchId = matchRef.current.id;
-    if (buildGame(currentMoves).isGameOver()) return;
+  const checkGameEnd = (currentG: Chess): boolean => {
+    if (currentG.isGameOver()) {
+      let winner: 'player' | 'bot' | 'draw' = 'draw';
+      let reason = 'Draw.';
 
+      if (currentG.isCheckmate()) {
+        const turn = currentG.turn();
+        const winningColor = turn === 'w' ? 'b' : 'w';
+        const playerWon = winningColor === playerColor;
+        winner = playerWon ? 'player' : 'bot';
+        reason = `Checkmate! ${playerWon ? 'You won!' : selectedBot.name + ' won!'}`;
+
+        if (playerWon) {
+          sounds.playSuccess();
+          recordBotGame(selectedBot.id, 'win');
+          const lossQuote = selectedBot.quotes.onLoss[Math.floor(Math.random() * selectedBot.quotes.onLoss.length)];
+          setBotSpeech(lossQuote);
+        } else {
+          sounds.playMistake();
+          recordBotGame(selectedBot.id, 'loss');
+          const winQuote = selectedBot.quotes.onWin[Math.floor(Math.random() * selectedBot.quotes.onWin.length)];
+          setBotSpeech(winQuote);
+        }
+      } else if (currentG.isDraw()) {
+        if (currentG.isStalemate()) reason = 'Draw by Stalemate.';
+        else if (currentG.isThreefoldRepetition()) reason = 'Draw by Threefold Repetition.';
+        else if (currentG.isInsufficientMaterial()) reason = 'Draw by Insufficient Material.';
+        else reason = 'Draw by 50-move rule.';
+
+        recordBotGame(selectedBot.id, 'draw');
+      }
+
+      setGameResult({ over: true, winner, reason });
+      return true;
+    }
+    return false;
+  };
+
+  // Bot makes a move
+  const triggerBotTurn = (currentMoves: string[], bot: BotPersonality = selectedBot) => {
     setIsBotThinking(true);
+    const thisMatchId = matchRef.current.id;
+
+    const thinkTime = 400 + Math.random() * 500;
 
     setTimeout(() => {
-      if (matchRef.current.id !== matchId) return; // a new match started meanwhile
+      // Guard against stale matches
+      if (matchRef.current.id !== thisMatchId) return;
+
+      const g = buildGame(currentMoves);
+      const botMove = findBotMove(g, bot.depth, bot.blunderRate);
+
+      if (!botMove) {
+        setIsBotThinking(false);
+        checkGameEnd(g);
+        return;
+      }
+
       try {
-        const currentGame = buildGame(currentMoves);
-        const botDecision = findBotMove(currentGame, bot.depth, bot.blunderRate);
-        if (botDecision) {
-          const moveRes = currentGame.move({
-            from: botDecision.from,
-            to: botDecision.to,
-            promotion: botDecision.promotion || 'q',
-          });
-
-          if (moveRes) {
-            setMoves([...currentMoves, moveRes.san]);
-
-            if (moveRes.captured) {
-              sounds.playCapture();
-              const quote = bot.quotes.onCapture[Math.floor(Math.random() * bot.quotes.onCapture.length)];
-              if (quote) setBotSpeech(quote);
-            } else if (currentGame.inCheck()) {
-              sounds.playCheck();
-              const quote = bot.quotes.onCheck[Math.floor(Math.random() * bot.quotes.onCheck.length)];
-              if (quote) setBotSpeech(quote);
-            } else {
-              sounds.playMove();
-            }
-
-            checkGameEnd(currentGame, bot);
-          }
+        const res = g.move(botMove);
+        if (!res) {
+          setIsBotThinking(false);
+          return;
         }
-      } catch (e) {
-        console.error('Bot move failed', e);
-      } finally {
+
+        const newMoves = [...currentMoves, res.san];
+        setMoves(newMoves);
+        setIsBotThinking(false);
+
+        // Sound effect
+        if (res.captured) sounds.playCapture();
+        else if (g.inCheck()) sounds.playCheck();
+        else sounds.playMove();
+
+        // Dialogue trigger
+        if (g.inCheck()) {
+          const q = bot.quotes.onCheck[Math.floor(Math.random() * bot.quotes.onCheck.length)];
+          if (q) setBotSpeech(q);
+        } else if (res.captured) {
+          const q = bot.quotes.onCapture[Math.floor(Math.random() * bot.quotes.onCapture.length)];
+          if (q) setBotSpeech(q);
+        }
+
+        checkGameEnd(g);
+      } catch {
         setIsBotThinking(false);
       }
-    }, 450 + Math.random() * 350);
+    }, thinkTime);
   };
 
-  const checkGameEnd = (currentGame: Chess, bot: BotPersonality) => {
-    const color = matchRef.current.color;
-    if (currentGame.isCheckmate()) {
-      const winner = currentGame.turn() === color ? 'bot' : 'player';
-      const reason = winner === 'player' ? 'Checkmate! You win!' : 'Checkmate! Bot wins!';
-      setGameResult({ over: true, winner, reason });
-
-      if (winner === 'player') {
-        sounds.playSuccess();
-        recordBotGame(bot.id, 'win');
-        setBotSpeech(bot.quotes.onLoss[0] || 'Well played!');
-      } else {
-        sounds.playMistake();
-        recordBotGame(bot.id, 'loss');
-        setBotSpeech(bot.quotes.onWin[0] || 'Checkmate!');
-      }
-    } else if (currentGame.isDraw()) {
-      let reason = 'Draw by 50-move rule';
-      if (currentGame.isStalemate()) reason = 'Draw by Stalemate';
-      if (currentGame.isThreefoldRepetition()) reason = 'Draw by Threefold Repetition';
-      if (currentGame.isInsufficientMaterial()) reason = 'Draw by Insufficient Material';
-
-      setGameResult({ over: true, winner: 'draw', reason });
-      recordBotGame(bot.id, 'draw');
-      setBotSpeech('A hard-fought draw! Excellent defense.');
-    }
-  };
-
-  const handlePlayerMove = (move: { from: Square; to: Square; promotion?: string }) => {
-    if (isBotThinking || gameResult.over || game.turn() !== playerColor) return;
+  // Player makes a move
+  const handlePlayerMove = (move: { from: Square; to: Square; promotion?: string }): boolean => {
+    if (isBotThinking || gameResult.over) return false;
+    if (game.turn() !== playerColor) return false;
 
     try {
-      const nextGame = buildGame(moves);
-      const moveRes = nextGame.move({
+      const testGame = buildGame(moves);
+      const res = testGame.move({
         from: move.from,
         to: move.to,
         promotion: move.promotion || 'q',
       });
 
-      if (!moveRes) {
-        sounds.playMistake();
-        return;
-      }
+      if (!res) return false;
 
-      const nextMoves = [...moves, moveRes.san];
-      setMoves(nextMoves);
+      const newMoves = [...moves, res.san];
+      setMoves(newMoves);
       setCoachHint(null);
 
-      if (moveRes.captured) {
-        sounds.playCapture();
-      } else if (nextGame.inCheck()) {
-        sounds.playCheck();
-      } else {
-        sounds.playMove();
-      }
+      // Sound
+      if (res.captured) sounds.playCapture();
+      else if (testGame.inCheck()) sounds.playCheck();
+      else sounds.playMove();
 
-      if (nextGame.isGameOver()) {
-        checkGameEnd(nextGame, selectedBot);
-        return;
-      }
+      // Check if player's move ended the game
+      if (checkGameEnd(testGame)) return true;
 
-      // Trigger bot response
-      triggerBotTurn(nextMoves, selectedBot);
+      // Trigger bot reply
+      triggerBotTurn(newMoves, selectedBot);
+      return true;
     } catch {
-      sounds.playMistake();
+      return false;
     }
   };
 
-  // Undo move (undoes bot's move and player's move)
   const handleUndo = () => {
-    if (isBotThinking || moves.length === 0) return;
-    let next = moves.slice(0, -1);
-    if (next.length > 0 && buildGame(next).turn() !== playerColor) next = next.slice(0, -1);
-    setMoves(next);
-    setCoachHint(null);
+    if (moves.length === 0 || isBotThinking) return;
+    // Undo 2 plies if bot has already moved, or 1 if it's currently bot's turn
+    const isPlayersTurn = game.turn() === playerColor;
+    const undoCount = isPlayersTurn ? 2 : 1;
+    const newMoves = moves.slice(0, Math.max(0, moves.length - undoCount));
+    setMoves(newMoves);
     setGameResult({ over: false, winner: null, reason: '' });
-    // Playing Black and undoing back to the start: the bot has to open again
-    if (next.length === 0 && playerColor === 'b') triggerBotTurn([], selectedBot);
+    setCoachHint(null);
   };
 
-  // Request Coach Hint
   const handleAskCoach = () => {
-    if (game.isGameOver() || isBotThinking) return;
-    const best = findBotMove(buildGame(moves), 3, 0);
-    if (best) {
-      setCoachHint({
-        move: `${best.from.toUpperCase()} to ${best.to.toUpperCase()}`,
-        explanation: best.explanation,
-      });
-      sounds.playSuccess();
+    if (gameResult.over || isBotThinking) return;
+    // Compute best move using master depth
+    const masterBot: BotPersonality = {
+      ...BOTS[4],
+      depth: 4,
+      blunderRate: 0,
+    };
+    const bestMove = findBotMove(game, masterBot.depth, masterBot.blunderRate);
+    if (!bestMove) return;
+
+    try {
+      const g = buildGame(moves);
+      const res = g.move(bestMove);
+      if (res) {
+        setCoachHint({
+          move: res.san,
+          explanation: `Notice how ${res.san} exerts pressure on the center while keeping your structure sound.`,
+        });
+      }
+    } catch {
+      // ignore
     }
   };
 
-  // Resign
   const handleResign = () => {
     if (gameResult.over) return;
     setGameResult({ over: true, winner: 'bot', reason: 'You resigned.' });
     recordBotGame(selectedBot.id, 'loss');
-    setBotSpeech(selectedBot.quotes.onWin[0] || 'Good game!');
+    setBotSpeech(selectedBot.quotes.onWin[0] || 'A hard fought game. Honor to your struggle.');
   };
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-6 animate-in fade-in">
-      {/* Bot Selector Carousel */}
+      {/* Bot Selector Carousel: Tactile Wooden Opponents */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
         {BOTS.map((b) => {
           const isSelected = selectedBot.id === b.id;
@@ -275,23 +297,23 @@ export const PlayBotView: React.FC<PlayBotViewProps> = ({ onReviewGame }) => {
             <div
               key={b.id}
               onClick={() => startNewMatch(b, playerColor)}
-              className={`p-3.5 rounded-xl border cursor-pointer transition flex flex-col justify-between ${
+              className={`p-3.5 rounded-xl cursor-pointer transition flex flex-col justify-between ${
                 isSelected
-                  ? 'bg-amber-500/15 border-amber-500 shadow-md scale-[1.02]'
-                  : 'bg-[#24211d] border-stone-800 hover:border-stone-700 hover:bg-[#2c2823]'
+                  ? 'wood-panel-raised border-2 border-brass shadow-wood-raised-lg scale-[1.02]'
+                  : 'wood-panel border border-wood-700/70 hover:border-wood-600 shadow-wood-raised'
               }`}
             >
               <div className="flex items-center justify-between">
-                <span className="text-2xl">{b.avatar}</span>
+                <BotAvatar avatarKey={b.avatar} size="sm" />
                 {isDefeated && (
-                  <span title="Defeated" className="text-xs">
-                    🏆
-                  </span>
+                  <div className="p-1 rounded-md wood-well border border-brass/30" title="Defeated">
+                    <Award className="w-3.5 h-3.5 text-brass" />
+                  </div>
                 )}
               </div>
-              <div className="mt-2">
-                <div className="text-xs font-black text-white">{b.name}</div>
-                <div className="text-[11px] text-amber-400 font-semibold font-mono">
+              <div className="mt-2.5">
+                <div className="text-xs font-serif font-bold text-wood-100">{b.name}</div>
+                <div className="text-[11px] text-brass font-mono font-bold">
                   Elo {b.elo}
                 </div>
               </div>
@@ -305,36 +327,36 @@ export const PlayBotView: React.FC<PlayBotViewProps> = ({ onReviewGame }) => {
         {/* Left: Eval Bar + ChessBoard + Bot Speech */}
         <div className="lg:col-span-8 flex flex-col items-center">
           {/* Bot Profile Header with Speech Bubble */}
-          <div className="w-full max-w-[580px] mb-3 flex items-center justify-between bg-[#24211d] border border-stone-800 rounded-xl p-3 shadow-md">
+          <div className="w-full max-w-[580px] mb-3 flex items-center justify-between wood-panel border border-wood-700 rounded-xl p-3 shadow-wood-raised">
             <div className="flex items-center gap-3">
-              <span className="text-3xl">{selectedBot.avatar}</span>
+              <BotAvatar avatarKey={selectedBot.avatar} size="md" />
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="font-bold text-white text-sm">{selectedBot.name}</span>
-                  <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-stone-800 text-amber-400">
+                  <span className="font-serif font-bold text-wood-100 text-sm">{selectedBot.name}</span>
+                  <span className="text-[10px] font-mono px-1.5 py-0.5 rounded wood-well border border-wood-750 text-brass">
                     Elo {selectedBot.elo}
                   </span>
                 </div>
-                <span className="text-xs text-stone-400 font-medium">{selectedBot.style}</span>
+                <span className="text-[11px] text-wood-400 font-medium">{selectedBot.style}</span>
               </div>
             </div>
 
-            {/* In-character speech bubble */}
-            <div className="hidden sm:flex items-center gap-2 bg-[#1b1916] border border-stone-700/60 rounded-xl px-3 py-1.5 max-w-xs text-xs text-stone-300 italic shadow-inner">
-              <MessageSquare className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+            {/* In-character speech bubble: Tactile Inset Tray */}
+            <div className="hidden sm:flex items-center gap-2 wood-well border border-wood-750 rounded-xl px-3 py-1.5 max-w-xs text-xs text-wood-300 italic shadow-wood-inset">
+              <MessageSquare className="w-3.5 h-3.5 text-brass shrink-0" />
               <span className="line-clamp-2">{botSpeech}</span>
             </div>
           </div>
 
           {/* Chessboard with Eval Bar side-by-side */}
-          <div className="flex items-stretch justify-center gap-3 w-full max-w-[580px]">
+          <div className="flex items-stretch justify-center gap-3.5 w-full max-w-[580px]">
             {/* Visual Eval Bar */}
             <EvaluationBar
               score={evalScore}
               orientation={playerColor === 'w' ? 'white' : 'black'}
             />
 
-            {/* The Chess Board */}
+            {/* The Handcrafted Chess Board */}
             <div className="flex-1">
               <ChessBoard
                 game={game}
@@ -347,20 +369,20 @@ export const PlayBotView: React.FC<PlayBotViewProps> = ({ onReviewGame }) => {
           </div>
 
           {/* Player Bar */}
-          <div className="w-full max-w-[580px] mt-3 flex items-center justify-between bg-[#24211d] border border-stone-800 rounded-xl p-3 shadow-md">
+          <div className="w-full max-w-[580px] mt-3 flex items-center justify-between wood-panel border border-wood-700 rounded-xl p-3 shadow-wood-raised">
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-full bg-emerald-600/30 text-emerald-400 flex items-center justify-center font-bold text-xs border border-emerald-500/30">
+              <div className="w-8 h-8 rounded-lg wood-well border border-wood-650 flex items-center justify-center font-serif font-bold text-xs text-brass shadow-wood-inset">
                 You
               </div>
               <div>
-                <span className="font-bold text-white text-xs block">
+                <span className="font-serif font-bold text-wood-100 text-xs block">
                   You ({playerColor === 'w' ? 'White' : 'Black'})
                 </span>
-                <span className="text-[11px] text-stone-400">
+                <span className="text-[11px] text-wood-400">
                   {game.turn() === playerColor ? (
-                    <span className="text-emerald-400 font-bold animate-pulse">Your Turn</span>
+                    <span className="text-brass font-bold">Your Turn</span>
                   ) : (
-                    <span className="text-stone-400">Bot is calculating...</span>
+                    <span className="text-wood-400">Opponent is calculating...</span>
                   )}
                 </span>
               </div>
@@ -371,7 +393,7 @@ export const PlayBotView: React.FC<PlayBotViewProps> = ({ onReviewGame }) => {
               <button
                 onClick={handleAskCoach}
                 disabled={isBotThinking || gameResult.over}
-                className="px-3 py-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 font-bold text-xs border border-amber-500/40 transition flex items-center gap-1.5 disabled:opacity-40"
+                className="px-3 py-1.5 rounded-lg wood-btn text-brass font-serif font-bold text-xs border border-brass/40 transition flex items-center gap-1.5 disabled:opacity-30"
               >
                 <Lightbulb className="w-3.5 h-3.5" />
                 <span>Coach Hint</span>
@@ -380,7 +402,7 @@ export const PlayBotView: React.FC<PlayBotViewProps> = ({ onReviewGame }) => {
               <button
                 onClick={handleUndo}
                 disabled={isBotThinking || moveHistory.length === 0}
-                className="p-1.5 rounded-lg bg-stone-800 hover:bg-stone-700 text-stone-300 disabled:opacity-30"
+                className="p-1.5 rounded-lg wood-btn text-wood-300 disabled:opacity-30"
                 title="Undo Move"
               >
                 <RotateCcw className="w-4 h-4" />
@@ -394,36 +416,36 @@ export const PlayBotView: React.FC<PlayBotViewProps> = ({ onReviewGame }) => {
           {/* Game Over Banner */}
           {gameResult.over && (
             <div
-              className={`p-5 rounded-xl border text-center space-y-3 shadow-2xl animate-in fade-in ${
+              className={`p-5 rounded-xl border text-center space-y-3 wood-panel-raised shadow-wood-raised-lg animate-in fade-in ${
                 gameResult.winner === 'player'
-                  ? 'bg-emerald-950/60 border-emerald-500 text-emerald-200'
-                  : 'bg-stone-900 border-amber-500/40 text-stone-200'
+                  ? 'border-brass/70 text-wood-100'
+                  : 'border-wood-700 text-wood-200'
               }`}
             >
               <Trophy
                 className={`w-10 h-10 mx-auto ${
-                  gameResult.winner === 'player' ? 'text-emerald-400' : 'text-amber-400'
+                  gameResult.winner === 'player' ? 'text-brass' : 'text-wood-400'
                 }`}
               />
-              <h3 className="text-lg font-black">{gameResult.reason}</h3>
-              <p className="text-xs opacity-80">
+              <h3 className="font-serif text-lg font-bold">{gameResult.reason}</h3>
+              <p className="text-xs text-wood-300">
                 {gameResult.winner === 'player'
-                  ? 'Victory logged in your profile (+100 XP)!'
-                  : 'Great effort! Analyze mistakes and challenge again.'}
+                  ? 'Victory logged in your academy record (+100 XP)!'
+                  : 'Valuable practice! Review mistakes to refine your technique.'}
               </p>
-              <div className="flex gap-2">
+              <div className="flex gap-2 pt-1">
                 {onReviewGame && moves.length > 0 && (
                   <button
                     onClick={() => onReviewGame(matchRef.current.id)}
-                    className="flex-1 py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow transition flex items-center justify-center gap-1.5"
+                    className="flex-1 py-2.5 rounded-lg wood-btn-brass text-wood-950 font-bold text-xs shadow transition flex items-center justify-center gap-1.5"
                   >
-                    <History className="w-3.5 h-3.5" />
-                    Review with Coach
+                    <History className="w-3.5 h-3.5 text-wood-950" />
+                    Review Match
                   </button>
                 )}
                 <button
                   onClick={() => startNewMatch()}
-                  className="flex-1 py-2.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-stone-950 font-bold text-xs shadow transition"
+                  className="flex-1 py-2.5 rounded-lg wood-btn text-wood-100 font-bold text-xs border border-wood-650 shadow transition"
                 >
                   Play Rematch
                 </button>
@@ -433,36 +455,36 @@ export const PlayBotView: React.FC<PlayBotViewProps> = ({ onReviewGame }) => {
 
           {/* Coach Advice Box */}
           {coachHint && (
-            <div className="bg-amber-950/30 border border-amber-500/50 rounded-xl p-4 space-y-2 shadow-lg animate-in fade-in">
-              <div className="flex items-center gap-2 text-xs font-bold text-amber-400 uppercase tracking-wider">
+            <div className="wood-panel border border-brass/50 rounded-xl p-4 space-y-2 shadow-wood-raised animate-in fade-in">
+              <div className="flex items-center gap-2 text-xs font-serif font-bold text-brass uppercase tracking-wider">
                 <Sparkles className="w-4 h-4" />
-                <span>Grandmaster Coach Recommends:</span>
+                <span>Coach Recommendation:</span>
               </div>
-              <div className="text-base font-black text-white font-mono">{coachHint.move}</div>
-              <p className="text-xs text-stone-200 leading-relaxed font-medium">
+              <div className="text-base font-black text-wood-100 font-mono">{coachHint.move}</div>
+              <p className="text-xs text-wood-300 leading-relaxed font-sans">
                 {coachHint.explanation}
               </p>
             </div>
           )}
 
-          {/* Move History Panel */}
-          <div className="bg-[#24211d] border border-stone-800 rounded-xl p-4 shadow-lg space-y-3">
-            <h4 className="text-xs font-bold text-stone-400 uppercase tracking-wider">
-              Move History
+          {/* Move History Panel: Tactile Inset Well */}
+          <div className="wood-panel border border-wood-700 rounded-xl p-4 shadow-wood-raised space-y-3">
+            <h4 className="text-[11px] font-serif font-bold text-wood-400 uppercase tracking-wider">
+              Move Notation
             </h4>
 
-            <div className="max-h-48 overflow-y-auto space-y-1 font-mono text-xs pr-2 scrollbar-thin">
+            <div className="wood-well rounded-lg p-2 max-h-48 overflow-y-auto space-y-1 font-mono text-xs pr-2 border border-wood-850">
               {moveHistory.length === 0 ? (
-                <span className="text-stone-500 text-xs italic">No moves yet. Make your first move!</span>
+                <span className="text-wood-500 text-xs italic">Awaiting opening move...</span>
               ) : (
                 Array.from({ length: Math.ceil(moveHistory.length / 2) }).map((_, i) => (
                   <div
                     key={i}
-                    className="flex items-center justify-between py-0.5 px-2 rounded hover:bg-stone-800/60"
+                    className="flex items-center justify-between py-0.5 px-2 rounded hover:bg-wood-800/60"
                   >
-                    <span className="text-stone-500 w-8">{i + 1}.</span>
-                    <span className="text-stone-200 font-bold flex-1">{moveHistory[i * 2]}</span>
-                    <span className="text-stone-400 flex-1">
+                    <span className="text-wood-500 w-8">{i + 1}.</span>
+                    <span className="text-wood-200 font-bold flex-1">{moveHistory[i * 2]}</span>
+                    <span className="text-wood-400 flex-1">
                       {moveHistory[i * 2 + 1] || ''}
                     </span>
                   </div>
@@ -472,22 +494,22 @@ export const PlayBotView: React.FC<PlayBotViewProps> = ({ onReviewGame }) => {
           </div>
 
           {/* Match Settings & Options */}
-          <div className="bg-[#1e1c18] border border-stone-800 rounded-xl p-4 space-y-3 shadow-md text-xs">
+          <div className="wood-panel border border-wood-700 rounded-xl p-4 space-y-3 shadow-wood-raised text-xs">
             <div className="flex items-center justify-between">
-              <span className="text-stone-400 font-medium">Color:</span>
-              <div className="flex items-center gap-1">
+              <span className="text-wood-400 font-medium">Side:</span>
+              <div className="flex items-center gap-1.5">
                 <button
                   onClick={() => startNewMatch(selectedBot, 'w')}
-                  className={`px-2.5 py-1 rounded font-bold transition ${
-                    playerColor === 'w' ? 'bg-amber-500 text-stone-950' : 'bg-stone-800 text-stone-300'
+                  className={`px-3 py-1 rounded-lg text-xs font-serif font-bold transition ${
+                    playerColor === 'w' ? 'wood-btn-brass text-wood-950' : 'wood-btn text-wood-300'
                   }`}
                 >
                   White
                 </button>
                 <button
                   onClick={() => startNewMatch(selectedBot, 'b')}
-                  className={`px-2.5 py-1 rounded font-bold transition ${
-                    playerColor === 'b' ? 'bg-amber-500 text-stone-950' : 'bg-stone-800 text-stone-300'
+                  className={`px-3 py-1 rounded-lg text-xs font-serif font-bold transition ${
+                    playerColor === 'b' ? 'wood-btn-brass text-wood-950' : 'wood-btn text-wood-300'
                   }`}
                 >
                   Black
@@ -495,10 +517,10 @@ export const PlayBotView: React.FC<PlayBotViewProps> = ({ onReviewGame }) => {
               </div>
             </div>
 
-            <div className="flex items-center gap-2 pt-2 border-t border-stone-800">
+            <div className="flex items-center gap-2 pt-2 border-t border-wood-750">
               <button
                 onClick={() => startNewMatch()}
-                className="flex-1 py-2 rounded-lg bg-stone-800 hover:bg-stone-700 text-stone-200 font-semibold transition flex items-center justify-center gap-1.5"
+                className="flex-1 py-2 rounded-lg wood-btn text-wood-200 font-semibold text-xs transition flex items-center justify-center gap-1.5"
               >
                 <RefreshCw className="w-3.5 h-3.5" />
                 <span>New Match</span>
@@ -507,7 +529,8 @@ export const PlayBotView: React.FC<PlayBotViewProps> = ({ onReviewGame }) => {
               <button
                 onClick={handleResign}
                 disabled={gameResult.over}
-                className="py-2 px-3 rounded-lg bg-rose-950/40 hover:bg-rose-900/40 text-rose-300 border border-rose-900/50 font-semibold transition disabled:opacity-30"
+                className="py-2 px-3 rounded-lg wood-btn text-rose-300 border border-rose-900/40 font-semibold transition disabled:opacity-30"
+                title="Resign Match"
               >
                 <Flag className="w-3.5 h-3.5" />
               </button>

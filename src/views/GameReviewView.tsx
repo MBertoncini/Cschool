@@ -73,8 +73,8 @@ const ClassBadge: React.FC<{ cls: MoveClass; size?: 'sm' | 'md' }> = ({ cls, siz
   const info = MOVE_CLASS_INFO[cls];
   return (
     <span
-      className={`inline-flex items-center justify-center rounded-full font-black text-white shrink-0 ${
-        size === 'sm' ? 'w-4 h-4 text-[8px]' : 'w-6 h-6 text-[11px]'
+      className={`inline-flex items-center justify-center rounded-md font-mono font-bold text-white shrink-0 shadow-sm ${
+        size === 'sm' ? 'min-w-[18px] h-4 px-1 text-[9px]' : 'min-w-[24px] h-6 px-1.5 text-xs'
       }`}
       style={{ backgroundColor: info.color }}
       title={info.label}
@@ -88,10 +88,10 @@ const MotifChips: React.FC<{ title: string; motifs: MotifInfo[]; tone: string }>
   if (!motifs.length) return null;
   return (
     <div className="space-y-1.5">
-      <div className="text-[10px] font-bold uppercase tracking-wider text-stone-500">{title}</div>
+      <div className="text-[10px] font-serif font-bold uppercase tracking-wider text-wood-400">{title}</div>
       <div className="flex flex-wrap gap-1.5">
         {motifs.map((m, i) => (
-          <span key={i} title={m.detail} className={`px-2 py-0.5 rounded-full text-[11px] font-bold border cursor-help ${tone}`}>
+          <span key={i} title={m.detail} className={`px-2 py-0.5 rounded-md text-[11px] font-medium border cursor-help ${tone}`}>
             {m.name}
           </span>
         ))}
@@ -254,7 +254,7 @@ export const GameReviewView: React.FC<GameReviewViewProps> = ({ gameId, onBack }
     return () => window.removeEventListener('keydown', onKey);
   }, [prev, next, first, last, exitVariation]);
 
-  // Moving a piece on the board explores a variation (or follows the game if it's the move played)
+  // Moving a piece on the board explores a variation
   const handleBoardMove = (mv: { from: Square; to: Square; promotion?: string }) => {
     let played: Move;
     try {
@@ -298,7 +298,7 @@ export const GameReviewView: React.FC<GameReviewViewProps> = ({ gameId, onBack }
   let badge = null;
   if (!variation && plyInfo) {
     if (plyInfo.uci !== plyInfo.bestUci && ['good', 'bad', 'blunder'].includes(plyInfo.classification) && plyInfo.bestUci) {
-      arrows.push({ from: plyInfo.bestUci.slice(0, 2) as Square, to: plyInfo.bestUci.slice(2, 4) as Square, color: '#22c55e' });
+      arrows.push({ from: plyInfo.bestUci.slice(0, 2) as Square, to: plyInfo.bestUci.slice(2, 4) as Square, color: '#d4a359' });
     }
     badge = {
       square: main.moves[ply - 1].to,
@@ -311,7 +311,7 @@ export const GameReviewView: React.FC<GameReviewViewProps> = ({ gameId, onBack }
     if (nextBest) {
       try {
         const m = new Chess(currentFen).move(nextBest);
-        arrows.push({ from: m.from, to: m.to, color: '#3b82f6', dashed: true });
+        arrows.push({ from: m.from, to: m.to, color: '#688db5', dashed: true });
       } catch {
         // ignore
       }
@@ -371,9 +371,9 @@ export const GameReviewView: React.FC<GameReviewViewProps> = ({ gameId, onBack }
   if (!saved) {
     return (
       <div className="max-w-3xl mx-auto px-4 py-16 text-center space-y-4">
-        <p className="text-stone-300">This game is not in your history (it may have been deleted on another device).</p>
-        <button onClick={onBack} className="px-4 py-2 rounded-lg bg-amber-500 text-stone-950 font-bold text-sm">
-          Back to My Games
+        <p className="text-wood-300 font-sans">This game is not in your history.</p>
+        <button onClick={onBack} className="px-4 py-2 rounded-xl wood-btn-brass text-wood-950 font-bold text-sm">
+          Back to Archives
         </button>
       </div>
     );
@@ -384,7 +384,6 @@ export const GameReviewView: React.FC<GameReviewViewProps> = ({ gameId, onBack }
   const bottomName = flipped ? saved.black : saved.white;
   const youColor = saved.playerColor;
 
-  // ── Render ──────────────────────────────────────────────────────────────
   const moveRows = Array.from({ length: Math.ceil(N / 2) }, (_, i) => i);
 
   const MoveCell: React.FC<{ index: number }> = ({ index }) => {
@@ -398,13 +397,13 @@ export const GameReviewView: React.FC<GameReviewViewProps> = ({ gameId, onBack }
         data-active={active}
         onClick={() => goTo(index + 1)}
         className={`flex-1 flex items-center gap-1.5 px-2 py-1 rounded text-left transition ${
-          active ? 'bg-amber-500/25 text-white ring-1 ring-amber-500/60' : 'hover:bg-stone-800 text-stone-200'
+          active ? 'wood-well text-brass font-bold ring-1 ring-brass/50' : 'hover:bg-wood-800 text-wood-200'
         } ${isYou ? 'font-bold' : 'font-medium'}`}
       >
         {a ? <ClassBadge cls={a.classification} /> : <span className="w-4 h-4 shrink-0" />}
-        <span>{m.san}</span>
+        <span className="font-mono text-xs">{m.san}</span>
         {a && (a.classification === 'blunder' || a.classification === 'bad') && (
-          <span className="ml-auto text-[10px] text-stone-500 font-mono">{formatScore(a.evalAfter)}</span>
+          <span className="ml-auto text-[10px] text-wood-500 font-mono">{formatScore(a.evalAfter)}</span>
         )}
       </button>
     );
@@ -416,19 +415,19 @@ export const GameReviewView: React.FC<GameReviewViewProps> = ({ gameId, onBack }
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-5 animate-in fade-in">
       {/* Header */}
-      <div className="flex flex-wrap items-center gap-3 justify-between">
+      <div className="flex flex-wrap items-center gap-3 justify-between pb-4 border-b border-wood-750">
         <div className="flex items-center gap-3 min-w-0">
-          <button onClick={onBack} className="p-2 rounded-lg bg-stone-800 hover:bg-stone-700 text-stone-200" title="Back to My Games">
+          <button onClick={onBack} className="p-2 rounded-xl wood-btn text-wood-200" title="Back to Archives">
             <ArrowLeft className="w-4 h-4" />
           </button>
           <div className="min-w-0">
-            <h2 className="text-lg font-black text-white truncate">
-              {saved.white} <span className="text-stone-500 font-medium">vs</span> {saved.black}
-              <span className="ml-2 text-amber-400 font-mono">{saved.result === '*' ? 'unfinished' : saved.result}</span>
+            <h2 className="font-serif text-lg sm:text-xl font-bold text-wood-100 truncate">
+              {saved.white} <span className="text-wood-500 font-sans font-normal text-xs">vs</span> {saved.black}
+              <span className="ml-2 text-brass font-mono text-sm">{saved.result === '*' ? 'in progress' : saved.result}</span>
             </h2>
-            <p className="text-xs text-stone-400 truncate">
-              {new Date(saved.createdAt).toLocaleString()} · {N} plies
-              {opening && <> · <span className="text-amber-200">{opening.name}</span></>}
+            <p className="text-xs text-wood-400 truncate font-sans">
+              {new Date(saved.createdAt).toLocaleDateString()} · {N} plies
+              {opening && <> · <span className="text-wood-200 font-serif">{opening.name}</span></>}
               {saved.termination && <> · {saved.termination}</>}
             </p>
           </div>
@@ -436,25 +435,25 @@ export const GameReviewView: React.FC<GameReviewViewProps> = ({ gameId, onBack }
         <div className="flex items-center gap-2">
           <button
             onClick={copyPgn}
-            className="px-3 py-1.5 rounded-lg bg-stone-800 hover:bg-stone-700 text-stone-200 text-xs font-bold flex items-center gap-1.5"
+            className="px-3.5 py-1.5 rounded-xl wood-btn text-wood-200 text-xs font-serif font-bold flex items-center gap-1.5 border border-wood-650"
           >
-            <Copy className="w-3.5 h-3.5" /> {copied ? 'Copied!' : 'Copy PGN'}
+            <Copy className="w-3.5 h-3.5 text-brass" /> {copied ? 'Copied PGN' : 'Export PGN'}
           </button>
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        {/* Left: board */}
+        {/* Left: Board & Replay controls */}
         <div className="lg:col-span-7 flex flex-col items-center gap-3">
-          <div className="w-full max-w-[580px] flex items-center justify-between text-sm px-1">
-            <span className="font-bold text-stone-200">{topName}</span>
+          <div className="w-full max-w-[580px] flex items-center justify-between text-xs px-1 font-serif">
+            <span className="font-bold text-wood-200">{topName}</span>
             {variation && (
-              <span className="flex items-center gap-1.5 text-xs font-bold text-sky-300 bg-sky-500/10 border border-sky-500/30 px-2 py-0.5 rounded-full">
-                <GitBranch className="w-3.5 h-3.5" /> Exploring a variation
+              <span className="flex items-center gap-1.5 text-[10px] font-bold text-wood-100 wood-well border border-brass/40 px-2 py-0.5 rounded-md shadow-wood-inset">
+                <GitBranch className="w-3 h-3 text-brass" /> Alternate Variation
               </span>
             )}
           </div>
-          <div className="flex items-stretch justify-center gap-3 w-full max-w-[580px]">
+          <div className="flex items-stretch justify-center gap-3.5 w-full max-w-[580px]">
             <EvaluationBar
               score={terminal ? (terminal === '1-0' ? 10 : -10) : barScore(currentEval)}
               orientation={orientation}
@@ -472,30 +471,30 @@ export const GameReviewView: React.FC<GameReviewViewProps> = ({ gameId, onBack }
               />
             </div>
           </div>
-          <div className="w-full max-w-[580px] flex items-center justify-between text-sm px-1">
-            <span className="font-bold text-stone-200">{bottomName}</span>
-            <span className="text-[11px] text-stone-500 hidden sm:inline">← → to move · ↑ ↓ start/end · drag pieces to try ideas</span>
+          <div className="w-full max-w-[580px] flex items-center justify-between text-xs px-1 font-serif">
+            <span className="font-bold text-wood-200">{bottomName}</span>
+            <span className="text-[10px] text-wood-500 font-sans hidden sm:inline">← → navigate · ↑ ↓ start/end · drag pieces to explore lines</span>
           </div>
 
-          {/* Navigation controls */}
+          {/* Navigation controls: Tactile Wood Buttons */}
           <div className="w-full max-w-[580px] grid grid-cols-6 gap-2">
             {[
-              { icon: <ChevronsLeft className="w-5 h-5" />, onClick: first, title: 'Start (↑)' },
-              { icon: <ChevronLeft className="w-5 h-5" />, onClick: prev, title: 'Previous (←)' },
-              { icon: <ChevronRight className="w-5 h-5" />, onClick: next, title: 'Next (→)' },
-              { icon: <ChevronsRight className="w-5 h-5" />, onClick: last, title: 'End (↓)' },
-              { icon: <FlipVertical2 className="w-5 h-5" />, onClick: () => setFlipped((f) => !f), title: 'Flip board (F)' },
+              { icon: <ChevronsLeft className="w-4 h-4" />, onClick: first, title: 'Start' },
+              { icon: <ChevronLeft className="w-4 h-4" />, onClick: prev, title: 'Previous' },
+              { icon: <ChevronRight className="w-4 h-4" />, onClick: next, title: 'Next' },
+              { icon: <ChevronsRight className="w-4 h-4" />, onClick: last, title: 'End' },
+              { icon: <FlipVertical2 className="w-4 h-4" />, onClick: () => setFlipped((f) => !f), title: 'Flip board' },
               {
-                icon: <Target className={`w-5 h-5 ${showEngineArrow ? 'text-sky-400' : ''}`} />,
+                icon: <Target className={`w-4 h-4 ${showEngineArrow ? 'text-brass' : ''}`} />,
                 onClick: () => setShowEngineArrow((s) => !s),
-                title: 'Show the engine move for this position',
+                title: 'Show engine candidate arrow',
               },
             ].map((b, i) => (
               <button
                 key={i}
                 onClick={b.onClick}
                 title={b.title}
-                className="py-2.5 rounded-lg bg-[#2a2622] hover:bg-[#38332d] border border-stone-700 text-stone-200 flex items-center justify-center transition active:scale-95"
+                className="py-2.5 rounded-xl wood-btn text-wood-200 flex items-center justify-center transition border border-wood-700/80"
               >
                 {b.icon}
               </button>
@@ -506,63 +505,62 @@ export const GameReviewView: React.FC<GameReviewViewProps> = ({ gameId, onBack }
           <div className="w-full max-w-[580px] space-y-1.5">
             <EvalGraph plies={plies} startEval={plies[0]?.evalBefore} currentPly={variation ? variation.base : ply} onSelectPly={goTo} totalPlies={N} />
             {progress && (
-              <div className="flex items-center gap-2 text-xs text-stone-400">
-                <Loader2 className="w-3.5 h-3.5 animate-spin text-amber-400" />
+              <div className="flex items-center gap-2 text-xs text-wood-400 font-sans">
+                <Loader2 className="w-3.5 h-3.5 animate-spin text-brass" />
                 <span>
-                  Stockfish is analysing your game… {progress.done}/{progress.total}
+                  Stockfish evaluating position… {progress.done}/{progress.total}
                 </span>
-                <div className="flex-1 h-1.5 rounded-full bg-stone-800 overflow-hidden">
-                  <div className="h-full bg-amber-500 transition-all" style={{ width: `${(progress.done / progress.total) * 100}%` }} />
+                <div className="flex-1 h-1.5 rounded-full wood-well overflow-hidden">
+                  <div className="h-full bg-brass transition-all" style={{ width: `${(progress.done / progress.total) * 100}%` }} />
                 </div>
               </div>
             )}
             {analysisError && (
-              <div className="text-xs text-rose-300 bg-rose-950/40 border border-rose-900/50 rounded-lg p-2">
-                Analysis failed: {analysisError}
+              <div className="text-xs text-rose-300 wood-well border border-rose-900/50 rounded-xl p-2.5">
+                Evaluation failed: {analysisError}
               </div>
             )}
           </div>
         </div>
 
-        {/* Right: coach, lines, moves, summary */}
+        {/* Right: Coach, lines, moves, summary */}
         <div className="lg:col-span-5 space-y-4">
           {/* Coach card */}
-          <div className="bg-[#24211d] border border-stone-800 rounded-xl p-4 shadow-lg space-y-3">
-            <div className="flex items-center gap-2 text-xs font-bold text-amber-400 uppercase tracking-wider">
-              <GraduationCap className="w-4 h-4" /> Coach
+          <div className="wood-panel border border-wood-700 rounded-xl p-5 shadow-wood-raised space-y-3">
+            <div className="flex items-center gap-2 text-xs font-serif font-bold text-brass uppercase tracking-wider">
+              <GraduationCap className="w-4 h-4" /> Grandmaster Analysis
             </div>
 
             {variation ? (
               <div className="space-y-3">
-                <p className="text-sm text-stone-200">
-                  You're exploring your own idea from move {Math.floor(variation.base / 2) + 1}. Keep moving pieces on the board — the engine
-                  evaluates every position.
+                <p className="text-xs text-wood-200 font-sans">
+                  Exploring custom continuation from move {Math.floor(variation.base / 2) + 1}. Move any piece on the board to test ideas against the engine.
                 </p>
                 <div className="flex flex-wrap gap-1 font-mono text-xs">
                   {variation.moves.map((s, i) => (
                     <button
                       key={i}
                       onClick={() => setVariation({ ...variation, idx: i + 1 })}
-                      className={`px-1.5 py-0.5 rounded ${
-                        variation.idx === i + 1 ? 'bg-sky-500/30 text-white' : 'text-stone-300 hover:bg-stone-800'
+                      className={`px-2 py-0.5 rounded text-xs ${
+                        variation.idx === i + 1 ? 'wood-btn-brass text-wood-950 font-bold' : 'wood-btn text-wood-300'
                       }`}
                     >
                       {formatLine(main.fens[variation.base], variation.moves.slice(0, i + 1)).split(' ').pop()}
                     </button>
                   ))}
                 </div>
-                <div className="rounded-lg bg-[#1b1916] border border-stone-800 p-3 space-y-1.5 text-xs">
-                  <div className="flex items-center gap-2 text-stone-400 font-bold uppercase tracking-wider text-[10px]">
-                    <Cpu className="w-3.5 h-3.5" /> Engine
-                    {live?.thinking && <Loader2 className="w-3 h-3 animate-spin" />}
+                <div className="rounded-xl wood-well border border-wood-800 p-3 space-y-1.5 text-xs shadow-wood-inset">
+                  <div className="flex items-center gap-2 text-wood-400 font-serif font-bold uppercase tracking-wider text-[10px]">
+                    <Cpu className="w-3.5 h-3.5 text-brass" /> Engine Evaluation
+                    {live?.thinking && <Loader2 className="w-3 h-3 animate-spin text-brass" />}
                   </div>
                   {terminal || boardGame.isGameOver() ? (
-                    <div className="text-stone-200 font-bold">{boardGame.isCheckmate() ? 'Checkmate!' : 'Game over (draw).'}</div>
+                    <div className="text-wood-100 font-serif font-bold">{boardGame.isCheckmate() ? 'Checkmate!' : 'Drawn position.'}</div>
                   ) : live?.line ? (
                     <div className="space-y-1">
-                      <div className="text-white font-black font-mono">{formatScore(live.line.score)}</div>
+                      <div className="text-brass font-bold font-mono">{formatScore(live.line.score)}</div>
                       <button
-                        className="text-left text-stone-300 font-mono hover:text-sky-300"
+                        className="text-left text-wood-300 font-mono hover:text-wood-100 text-xs"
                         onClick={() =>
                           setVariation({
                             ...variation,
@@ -570,77 +568,72 @@ export const GameReviewView: React.FC<GameReviewViewProps> = ({ gameId, onBack }
                             idx: variation.idx + 1,
                           })
                         }
-                        title="Play the engine line on the board"
+                        title="Play engine continuation"
                       >
                         Best: {formatLine(currentFen, live.line.san, 8)}
                       </button>
                     </div>
                   ) : (
-                    <div className="text-stone-500">Thinking…</div>
+                    <div className="text-wood-500 font-sans">Evaluating position…</div>
                   )}
                 </div>
-                <MotifChips title="Patterns in the last move" motifs={variationMotifs} tone="bg-sky-500/10 text-sky-200 border-sky-500/30" />
-                {variationMotifs.map((m, i) => (
-                  <p key={i} className="text-xs text-stone-300">
-                    <b className="text-sky-200">{m.name}:</b> {m.detail}
-                  </p>
-                ))}
+                <MotifChips title="Patterns in played move" motifs={variationMotifs} tone="wood-well text-wood-200 border-wood-750" />
                 <button
                   onClick={exitVariation}
-                  className="w-full py-2 rounded-lg bg-stone-800 hover:bg-stone-700 text-stone-200 text-xs font-bold flex items-center justify-center gap-1.5"
+                  className="w-full py-2 rounded-xl wood-btn text-wood-200 text-xs font-serif font-bold flex items-center justify-center gap-1.5"
                 >
-                  <X className="w-3.5 h-3.5" /> Back to the game (Esc)
+                  <X className="w-3.5 h-3.5" /> Return to Game (Esc)
                 </button>
               </div>
             ) : ply === 0 ? (
-              <p className="text-sm text-stone-300 leading-relaxed">
+              <p className="text-xs text-wood-300 leading-relaxed font-sans">
                 {N === 0
-                  ? 'No moves in this game.'
+                  ? 'No moves recorded in this match.'
                   : analysis
-                    ? `Use the arrows (or ← →) to replay the game. I'll explain every move: what it did, whether there was something better, and the patterns behind it.`
-                    : 'Analysing your game with Stockfish — you can already step through the moves.'}
+                    ? `Use the arrow buttons to step through the moves. Stockfish evaluates every positional shift, identifies tactical motifs, and recommends alternative lines.`
+                    : 'Evaluating your match with Stockfish — you can already browse the moves.'}
               </p>
             ) : !plyInfo ? (
-              <p className="text-sm text-stone-400 flex items-center gap-2">
-                <Loader2 className="w-4 h-4 animate-spin" /> Waiting for the engine to reach move {Math.ceil(ply / 2)}…
+              <p className="text-xs text-wood-400 flex items-center gap-2 font-sans">
+                <Loader2 className="w-4 h-4 animate-spin text-brass" /> Evaluating move {Math.ceil(ply / 2)}…
               </p>
             ) : notes ? (
               <div className="space-y-3">
                 <div className="flex items-start gap-2.5">
                   <ClassBadge cls={plyInfo.classification} size="md" />
                   <div>
-                    <div className={`text-sm font-black ${MOVE_CLASS_INFO[plyInfo.classification].text}`}>
+                    <div className={`text-xs font-bold font-serif ${MOVE_CLASS_INFO[plyInfo.classification].text}`}>
                       {MOVE_CLASS_INFO[plyInfo.classification].label}
-                      <span className="ml-2 text-stone-500 font-mono text-xs">
+                      <span className="ml-2 text-wood-400 font-mono text-[11px]">
                         {formatScore(plyInfo.evalBefore)} → {formatScore(plyInfo.evalAfter)}
                       </span>
                     </div>
-                    <div className="text-sm font-bold text-white">{notes.headline}</div>
+                    <div className="text-sm font-serif font-bold text-wood-100">{notes.headline}</div>
                   </div>
                 </div>
                 {notes.paragraphs.map((t, i) => (
-                  <p key={i} className="text-[13px] text-stone-300 leading-relaxed">
+                  <p key={i} className="text-xs text-wood-300 leading-relaxed font-sans">
                     {t}
                   </p>
                 ))}
-                <MotifChips title="Patterns in your move" motifs={notes.motifs} tone="bg-emerald-500/10 text-emerald-200 border-emerald-500/30" />
-                <MotifChips title={`Patterns in ${plyInfo.bestSan}`} motifs={notes.bestMotifs} tone="bg-lime-500/10 text-lime-200 border-lime-500/30" />
-                <MotifChips title="What it allows" motifs={notes.threats} tone="bg-rose-500/10 text-rose-200 border-rose-500/30" />
+                <MotifChips title="Tactical motifs detected" motifs={notes.motifs} tone="wood-well text-wood-200 border-wood-750" />
+                <MotifChips title={`Motifs in recommended ${plyInfo.bestSan}`} motifs={notes.bestMotifs} tone="wood-well text-brass border-brass/30" />
+                <MotifChips title="Tactical concessions" motifs={notes.threats} tone="wood-well text-rose-300 border-rose-900/40" />
                 <div className="flex flex-wrap gap-2 pt-1">
                   {plyInfo.uci !== plyInfo.bestUci && plyInfo.lines[0] && (
                     <button
                       onClick={() => loadLine(ply - 1, plyInfo.lines[0].san)}
-                      className="px-2.5 py-1.5 rounded-lg bg-lime-600/20 hover:bg-lime-600/30 border border-lime-600/40 text-lime-200 text-xs font-bold flex items-center gap-1.5"
+                      className="px-3 py-1.5 rounded-lg wood-btn text-brass text-xs font-serif font-bold flex items-center gap-1.5 border border-brass/30"
                     >
-                      <Sparkles className="w-3.5 h-3.5" /> Show {plyInfo.bestSan} line
+                      <Sparkles className="w-3.5 h-3.5" /> Show {plyInfo.bestSan} Line
                     </button>
                   )}
                   {plyInfo.reply && plyInfo.reply.san.length > 0 && (
                     <button
                       onClick={() => loadLine(ply, plyInfo.reply!.san)}
-                      className="px-2.5 py-1.5 rounded-lg bg-stone-800 hover:bg-stone-700 border border-stone-700 text-stone-200 text-xs font-bold flex items-center gap-1.5"
+                      className="px-3 py-1.5 rounded-lg wood-btn text-wood-300 text-xs font-serif font-medium flex items-center gap-1.5"
                     >
-                      <GitBranch className="w-3.5 h-3.5" /> What happens after {plyInfo.san}
+                      <GitBranch className="w-3.5 h-3.5" /> Refutation Line
                     </button>
                   )}
                 </div>
@@ -650,43 +643,43 @@ export const GameReviewView: React.FC<GameReviewViewProps> = ({ gameId, onBack }
 
           {/* Alternatives (engine lines) */}
           {!variation && plyInfo && plyInfo.lines.length > 0 && (
-            <div className="bg-[#24211d] border border-stone-800 rounded-xl p-4 shadow-lg space-y-2">
-              <h4 className="text-xs font-bold text-stone-400 uppercase tracking-wider">Engine lines instead of {plyInfo.san}</h4>
+            <div className="wood-panel border border-wood-700 rounded-xl p-4 shadow-wood-raised space-y-2">
+              <h4 className="text-[10px] font-serif font-bold text-wood-400 uppercase tracking-wider">Candidate lines instead of {plyInfo.san}</h4>
               {plyInfo.lines.map((l, i) => (
                 <button
                   key={i}
                   onClick={() => loadLine(ply - 1, l.san)}
-                  className="w-full text-left flex items-start gap-2 p-2 rounded-lg bg-[#1b1916] hover:bg-[#2c2823] border border-stone-800 transition"
+                  className="w-full text-left flex items-start gap-2 p-2 rounded-lg wood-well hover:wood-panel border border-wood-800 transition"
                   title="Play this line on the board"
                 >
                   <span
-                    className={`shrink-0 w-14 text-center font-mono text-xs font-black rounded px-1 py-0.5 ${
-                      barScore(l.score) >= 0 ? 'bg-stone-100 text-stone-900' : 'bg-stone-900 text-stone-100 border border-stone-700'
+                    className={`shrink-0 w-14 text-center font-mono text-xs font-bold rounded px-1 py-0.5 ${
+                      barScore(l.score) >= 0 ? 'wood-btn-brass text-wood-950' : 'wood-well text-wood-100 border border-wood-700'
                     }`}
                   >
                     {formatScore(l.score)}
                   </span>
-                  <span className="font-mono text-xs text-stone-300 leading-relaxed">
+                  <span className="font-mono text-xs text-wood-300 leading-relaxed">
                     {formatLine(main.fens[ply - 1], l.san, 10)}
-                    {l.san[0] === plyInfo.san && <span className="ml-1 text-emerald-400 font-sans font-bold">(your move)</span>}
+                    {l.san[0] === plyInfo.san && <span className="ml-1 text-brass font-serif font-bold">(played)</span>}
                   </span>
                 </button>
               ))}
             </div>
           )}
 
-          {/* Move list */}
-          <div className="bg-[#24211d] border border-stone-800 rounded-xl p-3 shadow-lg">
+          {/* Move list: Tactile Move Box */}
+          <div className="wood-panel border border-wood-700 rounded-xl p-3.5 shadow-wood-raised">
             <div className="flex items-center justify-between mb-2 px-1">
-              <h4 className="text-xs font-bold text-stone-400 uppercase tracking-wider">Moves</h4>
+              <h4 className="text-[10px] font-serif font-bold text-wood-400 uppercase tracking-wider">Notation</h4>
               {!progress && (
                 <div className="flex items-center gap-1">
                   {DEPTHS.map((d) => (
                     <button
                       key={d.depth}
                       onClick={() => setDepth(d.depth)}
-                      className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                        depth === d.depth ? 'bg-amber-500 text-stone-950' : 'bg-stone-800 text-stone-400 hover:text-stone-200'
+                      className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold ${
+                        depth === d.depth ? 'wood-btn-brass text-wood-950' : 'wood-btn text-wood-400'
                       }`}
                     >
                       {d.label}
@@ -694,27 +687,27 @@ export const GameReviewView: React.FC<GameReviewViewProps> = ({ gameId, onBack }
                   ))}
                   <button
                     onClick={() => runAnalysis(depth)}
-                    className="ml-1 px-2 py-0.5 rounded bg-stone-800 hover:bg-stone-700 text-stone-200 text-[10px] font-bold flex items-center gap-1"
-                    title="Run the analysis again at the selected depth"
+                    className="ml-1 px-2.5 py-0.5 rounded-lg wood-btn text-wood-200 text-[10px] font-serif font-bold flex items-center gap-1"
+                    title="Re-run engine analysis"
                   >
-                    <RefreshCw className="w-3 h-3" /> {analysis ? 'Re-analyse' : 'Analyse'}
+                    <RefreshCw className="w-3 h-3 text-brass" /> {analysis ? 'Re-analyse' : 'Analyse'}
                   </button>
                 </div>
               )}
             </div>
-            <div ref={listRef} className="relative max-h-72 overflow-y-auto space-y-0.5 font-mono text-xs pr-1">
+            <div ref={listRef} className="relative max-h-72 overflow-y-auto space-y-0.5 font-mono text-xs pr-1 wood-well p-2 rounded-xl border border-wood-850 shadow-wood-inset">
               <button
                 data-active={!variation && ply === 0}
                 onClick={() => goTo(0)}
                 className={`w-full text-left px-2 py-1 rounded text-[11px] ${
-                  !variation && ply === 0 ? 'bg-amber-500/25 text-white' : 'text-stone-500 hover:bg-stone-800'
+                  !variation && ply === 0 ? 'wood-btn-brass text-wood-950 font-bold' : 'text-wood-500 hover:bg-wood-800'
                 }`}
               >
-                Start position
+                Starting Position
               </button>
               {moveRows.map((i) => (
                 <div key={i} className="flex items-center gap-1">
-                  <span className="text-stone-500 w-7 text-right pr-1">{i + 1}.</span>
+                  <span className="text-wood-500 w-7 text-right pr-1 font-mono">{i + 1}.</span>
                   <MoveCell index={i * 2} />
                   <MoveCell index={i * 2 + 1} />
                 </div>
@@ -722,44 +715,44 @@ export const GameReviewView: React.FC<GameReviewViewProps> = ({ gameId, onBack }
             </div>
           </div>
 
-          {/* Summary */}
+          {/* Game Report Summary */}
           {analysis && counts && (
-            <div className="bg-[#24211d] border border-stone-800 rounded-xl p-4 shadow-lg space-y-3">
-              <h4 className="text-xs font-bold text-stone-400 uppercase tracking-wider">Game report</h4>
-              <div className="grid grid-cols-3 gap-2 text-center">
+            <div className="wood-panel border border-wood-700 rounded-xl p-5 shadow-wood-raised space-y-3">
+              <h4 className="text-[10px] font-serif font-bold text-wood-400 uppercase tracking-wider">Evaluation Report</h4>
+              <div className="grid grid-cols-3 gap-2 text-center text-xs">
                 <div />
-                <div className="text-xs font-bold text-stone-300">{saved.white}</div>
-                <div className="text-xs font-bold text-stone-300">{saved.black}</div>
-                <div className="text-left text-xs text-stone-400">Accuracy</div>
-                <div className="text-lg font-black text-white">{analysis.accuracy.w.toFixed(1)}</div>
-                <div className="text-lg font-black text-white">{analysis.accuracy.b.toFixed(1)}</div>
+                <div className="font-serif font-bold text-wood-200">{saved.white}</div>
+                <div className="font-serif font-bold text-wood-200">{saved.black}</div>
+                <div className="text-left font-serif text-wood-400">Accuracy</div>
+                <div className="text-base font-bold text-wood-100 font-mono">{analysis.accuracy.w.toFixed(1)}%</div>
+                <div className="text-base font-bold text-wood-100 font-mono">{analysis.accuracy.b.toFixed(1)}%</div>
                 {MOVE_CLASS_ORDER.map((c) => (
                   <React.Fragment key={c}>
-                    <div className="text-left text-xs text-stone-300 flex items-center gap-1.5">
+                    <div className="text-left text-wood-300 flex items-center gap-1.5 font-mono">
                       <ClassBadge cls={c} /> {MOVE_CLASS_INFO[c].label}
                     </div>
-                    <div className={`text-sm font-bold ${MOVE_CLASS_INFO[c].text}`}>{counts.w[c]}</div>
-                    <div className={`text-sm font-bold ${MOVE_CLASS_INFO[c].text}`}>{counts.b[c]}</div>
+                    <div className={`font-bold font-mono ${MOVE_CLASS_INFO[c].text}`}>{counts.w[c]}</div>
+                    <div className={`font-bold font-mono ${MOVE_CLASS_INFO[c].text}`}>{counts.b[c]}</div>
                   </React.Fragment>
                 ))}
               </div>
               {moments.length > 0 && (
-                <div className="space-y-1.5 pt-2 border-t border-stone-800">
-                  <div className="text-[10px] font-bold uppercase tracking-wider text-stone-500">Your key moments</div>
+                <div className="space-y-1.5 pt-3 border-t border-wood-750">
+                  <div className="text-[10px] font-serif font-bold uppercase tracking-wider text-wood-400">Key Moments</div>
                   {moments.map((m) => (
                     <button
                       key={m.ply}
                       onClick={() => goTo(m.ply)}
-                      className="w-full flex items-center gap-2 text-left text-xs p-1.5 rounded hover:bg-stone-800"
+                      className="w-full flex items-center gap-2 text-left text-xs p-1.5 rounded-lg wood-well hover:wood-panel border border-wood-800 transition"
                     >
                       <ClassBadge cls={m.classification} />
-                      <span className="font-mono text-stone-200">
+                      <span className="font-mono text-wood-200">
                         {Math.ceil(m.ply / 2)}
                         {m.color === 'w' ? '.' : '...'}
                         {m.san}
                       </span>
-                      <span className="text-stone-400">
-                        {m.classification === 'genial' ? 'brilliant find' : `best was ${m.bestSan} (−${m.winLoss.toFixed(0)}%)`}
+                      <span className="text-wood-400 text-[11px] font-sans">
+                        {m.classification === 'genial' ? 'exceptional move' : `preferred ${m.bestSan} (−${m.winLoss.toFixed(0)}%)`}
                       </span>
                     </button>
                   ))}

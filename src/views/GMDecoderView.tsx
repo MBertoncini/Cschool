@@ -1,14 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Chess, Square } from 'chess.js';
+import { Chess } from 'chess.js';
 import {
   Crown,
   ChevronLeft,
   ChevronRight,
   ChevronsLeft,
   ChevronsRight,
-  BookOpen,
   Sparkles,
-  Award,
   AlertCircle,
   Lightbulb,
 } from 'lucide-react';
@@ -38,7 +36,6 @@ export const GMDecoderView: React.FC = () => {
         g.move({ from: m.from, to: m.to });
         history.push(g.fen());
       } catch {
-        // If move fails, keep previous
         history.push(g.fen());
       }
     }
@@ -89,17 +86,17 @@ export const GMDecoderView: React.FC = () => {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-6 animate-in fade-in">
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-stone-800">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-wood-750">
         <div>
-          <div className="inline-flex items-center gap-1.5 text-xs font-bold text-amber-400 uppercase tracking-widest mb-1">
+          <div className="inline-flex items-center gap-1.5 text-xs font-serif font-bold text-brass uppercase tracking-widest mb-1">
             <Crown className="w-4 h-4" />
-            <span>Masterclass Game Breakdown</span>
+            <span>Grandmaster Study Arena</span>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-black text-white">
+          <h1 className="font-serif text-2xl sm:text-3xl font-bold text-wood-100">
             The Grandmaster Decoder
           </h1>
-          <p className="text-stone-400 text-xs sm:text-sm mt-1">
-            Move-by-move explanations demystifying why the world's greatest players played each move.
+          <p className="text-wood-400 text-xs sm:text-sm mt-1 font-sans">
+            Move-by-move explanations demystifying why history's greatest champions played each move.
           </p>
         </div>
 
@@ -109,10 +106,10 @@ export const GMDecoderView: React.FC = () => {
             <button
               key={mg.id}
               onClick={() => setSelectedGame(mg)}
-              className={`px-3 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${
+              className={`px-3 py-2 rounded-xl text-xs font-serif font-bold tracking-wide transition flex items-center gap-1.5 ${
                 selectedGame.id === mg.id
-                  ? 'bg-amber-500 text-stone-950 shadow-lg'
-                  : 'bg-stone-800 text-stone-300 hover:bg-stone-700 hover:text-white border border-stone-700'
+                  ? 'wood-btn-brass text-wood-950 shadow-brass-raised'
+                  : 'wood-btn text-wood-300 border border-wood-700/80'
               }`}
             >
               <Crown className="w-3.5 h-3.5" />
@@ -135,13 +132,13 @@ export const GMDecoderView: React.FC = () => {
             }
           />
 
-          {/* Navigation Controls */}
-          <div className="w-full max-w-[540px] mt-4 flex items-center justify-between bg-[#24211d] border border-stone-800 rounded-xl p-2.5 shadow-md">
-            <div className="flex items-center gap-1">
+          {/* Navigation Controls: Tactile Replay Bar */}
+          <div className="w-full max-w-[540px] mt-4 flex items-center justify-between wood-panel border border-wood-700 rounded-xl p-2.5 shadow-wood-raised">
+            <div className="flex items-center gap-1.5">
               <button
                 onClick={() => goToPly(0)}
                 disabled={currentPly === 0}
-                className="p-2 rounded-lg bg-stone-800 hover:bg-stone-700 disabled:opacity-30 disabled:pointer-events-none text-stone-200"
+                className="p-2 rounded-lg wood-btn disabled:opacity-30 disabled:pointer-events-none text-wood-200"
                 title="First Move"
               >
                 <ChevronsLeft className="w-4 h-4" />
@@ -149,32 +146,32 @@ export const GMDecoderView: React.FC = () => {
               <button
                 onClick={handlePrev}
                 disabled={currentPly === 0}
-                className="p-2 rounded-lg bg-stone-800 hover:bg-stone-700 disabled:opacity-30 disabled:pointer-events-none text-stone-200"
+                className="p-2 rounded-lg wood-btn disabled:opacity-30 disabled:pointer-events-none text-wood-200"
                 title="Previous Move"
               >
                 <ChevronLeft className="w-4 h-4" />
               </button>
             </div>
 
-            <div className="text-center font-bold text-xs text-stone-300">
+            <div className="text-center font-bold text-xs text-wood-300">
               {currentPly === 0 ? (
-                <span className="text-stone-400">Starting Position</span>
+                <span className="text-wood-400 font-serif">Starting Position</span>
               ) : (
-                <span>
+                <span className="font-serif">
                   Move {currentAnnotation?.moveNumber} ({currentAnnotation?.color === 'w' ? 'White' : 'Black'}:{' '}
-                  <span className="text-amber-400 text-sm">{currentAnnotation?.san}</span>)
+                  <span className="text-brass font-mono font-bold text-sm">{currentAnnotation?.san}</span>)
                 </span>
               )}
-              <span className="block text-[10px] text-stone-500 font-medium">
+              <span className="block text-[10px] text-wood-500 font-mono mt-0.5">
                 Ply {currentPly} / {selectedGame.moves.length}
               </span>
             </div>
 
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1.5">
               <button
                 onClick={handleNext}
                 disabled={currentPly >= selectedGame.moves.length}
-                className="p-2 rounded-lg bg-amber-500 hover:bg-amber-400 disabled:opacity-30 disabled:pointer-events-none text-stone-950 font-bold"
+                className="p-2 rounded-lg wood-btn-brass disabled:opacity-30 disabled:pointer-events-none text-wood-950 font-bold"
                 title="Next Move"
               >
                 <ChevronRight className="w-4 h-4" />
@@ -182,7 +179,7 @@ export const GMDecoderView: React.FC = () => {
               <button
                 onClick={() => goToPly(selectedGame.moves.length)}
                 disabled={currentPly >= selectedGame.moves.length}
-                className="p-2 rounded-lg bg-stone-800 hover:bg-stone-700 disabled:opacity-30 disabled:pointer-events-none text-stone-200"
+                className="p-2 rounded-lg wood-btn disabled:opacity-30 disabled:pointer-events-none text-wood-200"
                 title="Last Move"
               >
                 <ChevronsRight className="w-4 h-4" />
@@ -190,8 +187,8 @@ export const GMDecoderView: React.FC = () => {
             </div>
           </div>
 
-          {/* Move Sequence Strip */}
-          <div className="w-full max-w-[540px] mt-3 bg-[#1e1c18] border border-stone-800 rounded-lg p-2 overflow-x-auto flex items-center gap-1.5 scrollbar-thin">
+          {/* Move Sequence Strip: Inset Wooden Tray */}
+          <div className="w-full max-w-[540px] mt-3 wood-well border border-wood-850 rounded-xl p-2 overflow-x-auto flex items-center gap-1.5 shadow-wood-inset">
             {selectedGame.moves.map((m, idx) => {
               const plyIdx = idx + 1;
               const isSelected = currentPly === plyIdx;
@@ -199,12 +196,12 @@ export const GMDecoderView: React.FC = () => {
                 <button
                   key={m.ply}
                   onClick={() => goToPly(plyIdx)}
-                  className={`px-2 py-1 rounded text-[11px] font-mono shrink-0 transition ${
+                  className={`px-2.5 py-1 rounded-md text-[11px] font-mono shrink-0 transition ${
                     isSelected
-                      ? 'bg-amber-500 text-stone-950 font-black scale-105'
+                      ? 'wood-btn-brass text-wood-950 font-bold scale-105'
                       : m.isCritical
-                      ? 'bg-rose-950/60 border border-rose-500/40 text-rose-300 hover:bg-rose-900/60'
-                      : 'bg-stone-800/80 text-stone-300 hover:bg-stone-700 hover:text-white'
+                      ? 'wood-well border border-brass/50 text-brass hover:text-wood-50'
+                      : 'wood-btn text-wood-300 hover:text-wood-100'
                   }`}
                 >
                   {m.color === 'w' && `${m.moveNumber}.`} {m.san}
@@ -217,112 +214,120 @@ export const GMDecoderView: React.FC = () => {
         {/* Right: The Grandmaster "WHY" Commentary Panel */}
         <div className="lg:col-span-5 space-y-4">
           {/* Game Overview Card */}
-          <div className="bg-[#24211d] border border-stone-800 rounded-xl p-5 shadow-lg space-y-3">
-            <div className="flex items-center justify-between text-xs text-stone-400 border-b border-stone-800 pb-2">
-              <span className="font-semibold text-amber-400">{selectedGame.event}</span>
-              <span>{selectedGame.year}</span>
+          <div className="wood-panel border border-wood-700 rounded-xl p-5 shadow-wood-raised space-y-3">
+            <div className="flex items-center justify-between text-xs text-wood-400 border-b border-wood-750 pb-2">
+              <span className="font-serif font-bold text-brass">{selectedGame.event}</span>
+              <span className="font-mono">{selectedGame.year}</span>
             </div>
 
             <div className="grid grid-cols-2 gap-2 text-xs">
-              <div className="p-2 rounded bg-stone-800/60 border border-stone-700/50">
-                <span className="text-[10px] text-stone-400 block uppercase font-bold">White</span>
-                <span className="font-bold text-white text-sm">{selectedGame.white.name}</span>
-                <span className="text-[10px] text-stone-400 block">{selectedGame.white.title}</span>
+              <div className="p-2.5 rounded-lg wood-well border border-wood-800">
+                <span className="text-[10px] text-wood-500 block uppercase font-serif font-bold">White</span>
+                <span className="font-serif font-bold text-wood-100 text-sm">{selectedGame.white.name}</span>
+                <span className="text-[10px] text-wood-400 block font-mono">{selectedGame.white.title}</span>
               </div>
-              <div className="p-2 rounded bg-stone-800/60 border border-stone-700/50">
-                <span className="text-[10px] text-stone-400 block uppercase font-bold">Black</span>
-                <span className="font-bold text-white text-sm">{selectedGame.black.name}</span>
-                <span className="text-[10px] text-stone-400 block">{selectedGame.black.title}</span>
+              <div className="p-2.5 rounded-lg wood-well border border-wood-800">
+                <span className="text-[10px] text-wood-500 block uppercase font-serif font-bold">Black</span>
+                <span className="font-serif font-bold text-wood-100 text-sm">{selectedGame.black.name}</span>
+                <span className="text-[10px] text-wood-400 block font-mono">{selectedGame.black.title}</span>
               </div>
             </div>
 
-            <p className="text-xs text-stone-300 leading-relaxed">
+            <p className="text-xs text-wood-300 leading-relaxed font-sans">
               {selectedGame.description}
             </p>
           </div>
 
           {/* Current Move Explanation Box */}
-          <div className="bg-[#1e1c18] border border-stone-800 rounded-xl p-5 shadow-xl space-y-4">
+          <div className="wood-panel-raised border border-wood-650 rounded-xl p-5 shadow-wood-raised-lg space-y-4">
             {currentPly === 0 ? (
               <div className="text-center py-6 space-y-3">
-                <Crown className="w-10 h-10 text-amber-400 mx-auto opacity-70" />
-                <h3 className="text-base font-bold text-white">Ready to study this masterpiece?</h3>
-                <p className="text-xs text-stone-400 max-w-sm mx-auto leading-relaxed">
-                  Click <b>"Next Move"</b> or use the arrow controls below the board to follow the game move-by-move.
+                <Crown className="w-9 h-9 text-brass mx-auto opacity-80" />
+                <h3 className="font-serif text-base font-bold text-wood-100">Ready to examine this classical gem?</h3>
+                <p className="text-xs text-wood-400 max-w-sm mx-auto leading-relaxed font-sans">
+                  Use the navigation controls below the board or press the <b>Next Move</b> button to uncover each tactical insight step-by-step.
                 </p>
                 <button
-                  onClick={() => goToPly(1)}
-                  className="px-4 py-2 rounded-lg bg-amber-500 hover:bg-amber-400 text-stone-950 font-bold text-xs shadow transition"
+                  onClick={handleNext}
+                  className="px-5 py-2 rounded-xl wood-btn-brass text-wood-950 font-serif font-bold text-xs uppercase tracking-wider shadow-brass-raised transition"
                 >
-                  Start Game &rarr;
+                  Begin Game Analysis
                 </button>
               </div>
-            ) : currentAnnotation ? (
-              <div className="space-y-4 animate-in fade-in">
-                {/* Move Header */}
-                <div className="flex items-center justify-between border-b border-stone-800 pb-3">
-                  <div className="flex items-center gap-2">
-                    <span className="text-2xl font-black text-amber-400 font-mono">
-                      {currentAnnotation.moveNumber}. {currentAnnotation.san}
-                    </span>
-                    <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded bg-stone-800 text-stone-300">
-                      {currentAnnotation.color === 'w' ? 'White' : 'Black'}
-                    </span>
+            ) : (
+              currentAnnotation && (
+                <div className="space-y-4 animate-in fade-in">
+                  <div className="flex items-center justify-between border-b border-wood-750 pb-3">
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-lg wood-well border border-wood-650 flex items-center justify-center font-mono font-bold text-brass text-sm shadow-wood-inset">
+                        {currentAnnotation.san}
+                      </div>
+                      <div>
+                        <h4 className="font-serif text-sm font-bold text-wood-100">
+                          {currentAnnotation.color === 'w' ? 'White' : 'Black'} played {currentAnnotation.san}
+                        </h4>
+                        <span className="text-[10px] font-mono text-wood-400">
+                          Square: {currentAnnotation.from} → {currentAnnotation.to}
+                        </span>
+                      </div>
+                    </div>
+
+                    {currentAnnotation.isCritical && (
+                      <span className="px-2 py-0.5 rounded wood-well text-brass border border-brass/40 font-serif font-bold text-[10px] uppercase tracking-wider">
+                        Key Turning Point
+                      </span>
+                    )}
                   </div>
 
-                  {currentAnnotation.isCritical && (
-                    <span className="text-[10px] uppercase font-black px-2 py-0.5 rounded bg-rose-500 text-white shadow-sm flex items-center gap-1">
-                      <Sparkles className="w-3 h-3" /> Critical Brilliant Move
+                  {/* Why this move was played */}
+                  <div className="space-y-1.5">
+                    <span className="text-[10px] font-serif uppercase tracking-wider text-wood-400 font-bold block">
+                      Grandmaster Thinking
                     </span>
-                  )}
-                </div>
-
-                {/* Plain English "WHY" */}
-                <div className="space-y-1">
-                  <h4 className="text-xs font-bold text-stone-400 uppercase tracking-wider flex items-center gap-1.5">
-                    <BookOpen className="w-3.5 h-3.5 text-emerald-400" />
-                    <span>Why was this move played?</span>
-                  </h4>
-                  <p className="text-sm font-medium text-white leading-relaxed">
-                    {currentAnnotation.whyPlayed}
-                  </p>
-                </div>
-
-                {/* Beginner Trap / Alternative Instinct */}
-                {currentAnnotation.beginnerTrapAvoided && (
-                  <div className="p-3 bg-rose-950/30 border border-rose-900/40 rounded-lg space-y-1">
-                    <div className="text-[11px] font-bold text-rose-400 uppercase tracking-wider flex items-center gap-1.5">
-                      <AlertCircle className="w-3.5 h-3.5" />
-                      <span>Why Not The Beginner Move?</span>
-                    </div>
-                    <p className="text-xs text-rose-200/90 leading-relaxed">
-                      {currentAnnotation.beginnerTrapAvoided}
+                    <p className="text-xs text-wood-200 leading-relaxed font-sans">
+                      {currentAnnotation.whyPlayed}
                     </p>
                   </div>
-                )}
 
-                {/* Core Chess Principle */}
-                <div className="p-3 bg-amber-500/10 border-l-4 border-amber-500 rounded-r-lg space-y-1">
-                  <div className="text-[11px] font-bold text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
-                    <Lightbulb className="w-3.5 h-3.5" />
-                    <span>Key Lesson / Principle</span>
-                  </div>
-                  <p className="text-xs text-stone-200 font-semibold italic">
-                    "{currentAnnotation.principle}"
-                  </p>
+                  {/* Plain Language GM Logic / Trap Avoided */}
+                  {currentAnnotation.beginnerTrapAvoided && (
+                    <div className="wood-well rounded-xl p-3.5 border border-brass/30 space-y-1.5 shadow-wood-inset">
+                      <div className="flex items-center gap-1.5 text-brass font-serif font-bold text-[11px] uppercase tracking-wider">
+                        <Lightbulb className="w-3.5 h-3.5 text-brass shrink-0" />
+                        <span>Beginner Instinct vs Master Calculation</span>
+                      </div>
+                      <p className="text-xs text-wood-100 leading-relaxed font-sans">
+                        {currentAnnotation.beginnerTrapAvoided}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Core Chess Principle */}
+                  {currentAnnotation.principle && (
+                    <div className="space-y-1.5 pt-1">
+                      <span className="text-[10px] font-serif uppercase tracking-wider text-wood-400 font-bold block">
+                        Classical Principle
+                      </span>
+                      <p className="text-xs text-wood-300 leading-relaxed flex items-start gap-1.5 font-sans">
+                        <AlertCircle className="w-3.5 h-3.5 text-brass shrink-0 mt-0.5" />
+                        <span>{currentAnnotation.principle}</span>
+                      </p>
+                    </div>
+                  )}
                 </div>
+              )
+            )}
+          </div>
 
-                {/* Quick Next Move button */}
-                <button
-                  onClick={handleNext}
-                  disabled={currentPly >= selectedGame.moves.length}
-                  className="w-full py-2.5 rounded-lg bg-stone-800 hover:bg-stone-700 disabled:opacity-40 text-stone-200 text-xs font-bold transition flex items-center justify-center gap-2"
-                >
-                  <span>See Next Grandmaster Move</span>
-                  <ChevronRight className="w-4 h-4" />
-                </button>
-              </div>
-            ) : null}
+          {/* Key Lesson Takeaway Card */}
+          <div className="wood-panel border border-wood-700/80 rounded-xl p-4 shadow-wood-raised">
+            <div className="flex items-center gap-2 text-brass font-serif font-bold text-xs uppercase tracking-wider mb-1.5">
+              <Sparkles className="w-3.5 h-3.5 text-brass" />
+              <span>Timeless Principle</span>
+            </div>
+            <p className="text-xs text-wood-300 leading-relaxed italic font-serif">
+              "{selectedGame.keyTakeaway}"
+            </p>
           </div>
         </div>
       </div>

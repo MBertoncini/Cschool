@@ -1,5 +1,4 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import confetti from 'canvas-confetti';
 import { UserProgress, Achievement } from '../types/chess';
 import { sounds } from '../engine/sound';
 
@@ -8,49 +7,49 @@ export const ACHIEVEMENTS_LIST: Achievement[] = [
     id: 'first_move',
     title: 'First Step',
     description: 'Completed your very first interactive chess lesson.',
-    icon: '🎯',
+    icon: 'target',
   },
   {
     id: 'tactics_apprentice',
     title: 'Tactics Apprentice',
     description: 'Mastered the Fork and Pin tactics in the academy.',
-    icon: '⚔️',
+    icon: 'swords',
   },
   {
     id: 'puzzle_solver_5',
     title: 'Sharpshooter',
     description: 'Solved 5 tactical puzzles successfully.',
-    icon: '🧩',
+    icon: 'puzzle',
   },
   {
     id: 'bot_slayer_1',
     title: 'Bot Tamer',
     description: 'Defeated your first chess bot.',
-    icon: '🤖',
+    icon: 'bot',
   },
   {
     id: 'opening_scholar',
     title: 'Repertoire Explorer',
     description: 'Studied 3 classic chess openings in depth.',
-    icon: '📖',
+    icon: 'book',
   },
   {
     id: 'gm_decoder_master',
     title: 'Grandmaster Mind',
     description: 'Completed an entire legendary Grandmaster game breakdown.',
-    icon: '👑',
+    icon: 'crown',
   },
   {
     id: 'endgame_wizard',
     title: 'Endgame Virtuoso',
     description: 'Learned key endgame techniques: King Opposition & Rook Cut-offs.',
-    icon: '♟️',
+    icon: 'shield',
   },
   {
     id: 'rating_1200',
     title: 'Rising Star',
     description: 'Reached a tactical rating of 1200+ in the Puzzle Arena.',
-    icon: '⭐',
+    icon: 'star',
   },
 ];
 
@@ -79,15 +78,15 @@ interface ProgressContextType {
   progress: UserProgress;
   addXp: (amount: number, reason?: string) => void;
   completeLesson: (lessonId: string, xpReward: number) => void;
-  recordPuzzleResult: (puzzleId: string, isCorrect: boolean, ratingDelta: number) => void;
+  recordPuzzleResult: (puzzleId: string, success: boolean, ratingChange: number) => void;
   studyOpening: (openingId: string) => void;
   studyMasterGame: (gameId: string) => void;
   recordBotGame: (botId: string, result: 'win' | 'loss' | 'draw') => void;
+  resetProgress: () => void;
   soundEnabled: boolean;
   toggleSound: () => void;
   recentToast: { title: string; message: string; icon?: string } | null;
   clearToast: () => void;
-  resetProgress: () => void;
 }
 
 const ProgressContext = createContext<ProgressContextType | undefined>(undefined);
@@ -97,27 +96,47 @@ export const ProgressProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) {
-        return { ...INITIAL_PROGRESS, ...JSON.parse(saved) };
+        const parsed = JSON.parse(saved);
+        // Calculate streak
+        const today = new Date().toISOString().split('T')[0];
+        const lastDate = parsed.lastActiveDate || today;
+
+        if (today !== lastDate) {
+          const diffDays = Math.floor(
+            (new Date(today).getTime() - new Date(lastDate).getTime()) / (1000 * 3600 * 24)
+          );
+          if (diffDays === 1) {
+            parsed.streakDays = (parsed.streakDays || 1) + 1;
+          } else if (diffDays > 1) {
+            parsed.streakDays = 1;
+          }
+          parsed.lastActiveDate = today;
+        }
+        return { ...INITIAL_PROGRESS, ...parsed };
       }
-    } catch (e) {
-      console.warn('Could not load progress from localStorage:', e);
+    } catch {
+      // fallback
     }
     return INITIAL_PROGRESS;
   });
 
   const [soundEnabled, setSoundEnabled] = useState<boolean>(() => {
-    const saved = localStorage.getItem('cschool_sound_pref');
-    return saved !== null ? saved === 'true' : true;
+    const pref = localStorage.getItem('cschool_sound_pref');
+    return pref !== null ? pref === 'true' : true;
   });
 
-  const [recentToast, setRecentToast] = useState<{ title: string; message: string; icon?: string } | null>(null);
+  const [recentToast, setRecentToast] = useState<{
+    title: string;
+    message: string;
+    icon?: string;
+  } | null>(null);
 
-  // Sync to localStorage
+  // Sync state to LocalStorage
   useEffect(() => {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(progress));
-    } catch (e) {
-      console.warn('Could not save progress:', e);
+    } catch {
+      // ignore
     }
   }, [progress]);
 
@@ -128,17 +147,8 @@ export const ProgressProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     localStorage.setItem('cschool_sound_pref', String(nextVal));
   };
 
-  const showToast = (title: string, message: string, icon: string = '✨') => {
+  const showToast = (title: string, message: string, icon: string = 'award') => {
     setRecentToast({ title, message, icon });
-    try {
-      confetti({
-        particleCount: 50,
-        spread: 60,
-        origin: { y: 0.8 },
-      });
-    } catch {
-      // ignore
-    }
     setTimeout(() => {
       setRecentToast(null);
     }, 4500);
@@ -149,7 +159,7 @@ export const ProgressProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       if (prev.achievements.includes(achievementId)) return prev;
       const ach = ACHIEVEMENTS_LIST.find((a) => a.id === achievementId);
       if (ach) {
-        showToast(`Achievement Unlocked!`, ach.title, ach.icon);
+        showToast('Achievement Unlocked', ach.title, ach.icon);
         sounds.playSuccess();
       }
       return {
@@ -161,20 +171,17 @@ export const ProgressProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   };
 
   const calculateLevel = (xp: number) => {
-    // 0-200: Level 1, 201-500: Level 2, 501-1000: Level 3, 1001-2000: Level 4, etc.
     return Math.floor(Math.sqrt(xp / 100)) + 1;
   };
 
-  const addXp = (amount: number, reason?: string) => {
+  const addXp = (amount: number, _reason?: string) => {
     setProgress((prev) => {
       const newXp = prev.xp + amount;
       const newLevel = calculateLevel(newXp);
 
       if (newLevel > prev.level) {
-        showToast('Level Up!', `Congratulations! You reached Level ${newLevel}!`, '🚀');
+        showToast('Level Up', `Congratulations! You reached Level ${newLevel}!`, 'crown');
         sounds.playSuccess();
-      } else if (reason) {
-        // Optional mini feedback
       }
 
       return {
@@ -201,44 +208,42 @@ export const ProgressProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       };
     });
 
-    // Check achievement triggers
     triggerAchievement('first_move');
-    if (lessonId.includes('fork') || lessonId.includes('pin')) {
-      triggerAchievement('tactics_apprentice');
+    if (lessonId === 'fork-tactic' || lessonId === 'pin-tactic') {
+      setTimeout(() => {
+        triggerAchievement('tactics_apprentice');
+      }, 500);
     }
-    if (lessonId.includes('endgame')) {
-      triggerAchievement('endgame_wizard');
+    if (lessonId === 'king-opposition' || lessonId === 'rook-cutoff') {
+      setTimeout(() => {
+        triggerAchievement('endgame_wizard');
+      }, 500);
     }
   };
 
-  const recordPuzzleResult = (puzzleId: string, isCorrect: boolean, ratingDelta: number) => {
+  const recordPuzzleResult = (puzzleId: string, success: boolean, ratingChange: number) => {
     setProgress((prev) => {
       const alreadySolved = prev.solvedPuzzles.includes(puzzleId);
-      const newSolved = isCorrect && !alreadySolved ? [...prev.solvedPuzzles, puzzleId] : prev.solvedPuzzles;
-      const newRating = Math.max(400, prev.tacticsRating + ratingDelta);
-      const xpGain = isCorrect ? 25 : 5;
-      const newXp = prev.xp + xpGain;
+      const newSolved = success && !alreadySolved ? [...prev.solvedPuzzles, puzzleId] : prev.solvedPuzzles;
+      const newRating = Math.max(400, prev.tacticsRating + ratingChange);
+      const newXp = success ? prev.xp + 25 : Math.max(0, prev.xp + 5);
+      const newLevel = calculateLevel(newXp);
+
+      if (newSolved.length >= 5) {
+        setTimeout(() => triggerAchievement('puzzle_solver_5'), 400);
+      }
+      if (newRating >= 1200) {
+        setTimeout(() => triggerAchievement('rating_1200'), 400);
+      }
 
       return {
         ...prev,
-        solvedPuzzles: newSolved,
         tacticsRating: newRating,
+        solvedPuzzles: newSolved,
         xp: newXp,
-        level: calculateLevel(newXp),
+        level: newLevel,
       };
     });
-
-    if (isCorrect) {
-      sounds.playSuccess();
-      if (progress.solvedPuzzles.length + 1 >= 5) {
-        triggerAchievement('puzzle_solver_5');
-      }
-      if (progress.tacticsRating + ratingDelta >= 1200) {
-        triggerAchievement('rating_1200');
-      }
-    } else {
-      sounds.playMistake();
-    }
   };
 
   const studyOpening = (openingId: string) => {
@@ -251,7 +256,7 @@ export const ProgressProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       return {
         ...prev,
         studiedOpenings: updated,
-        xp: prev.xp + 40,
+        xp: prev.xp + 50,
       };
     });
   };
@@ -259,10 +264,11 @@ export const ProgressProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const studyMasterGame = (gameId: string) => {
     setProgress((prev) => {
       if (prev.studiedMasterGames.includes(gameId)) return prev;
+      const updated = [...prev.studiedMasterGames, gameId];
       setTimeout(() => triggerAchievement('gm_decoder_master'), 500);
       return {
         ...prev,
-        studiedMasterGames: [...prev.studiedMasterGames, gameId],
+        studiedMasterGames: updated,
         xp: prev.xp + 75,
       };
     });
@@ -270,36 +276,41 @@ export const ProgressProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   const recordBotGame = (botId: string, result: 'win' | 'loss' | 'draw') => {
     setProgress((prev) => {
-      const isWin = result === 'win';
-      const isDraw = result === 'draw';
-      const defeated = isWin && !prev.botRecord.defeatedBots.includes(botId)
-        ? [...prev.botRecord.defeatedBots, botId]
-        : prev.botRecord.defeatedBots;
+      const current = prev.botRecord;
+      const newWins = result === 'win' ? current.wins + 1 : current.wins;
+      const newLosses = result === 'loss' ? current.losses + 1 : current.losses;
+      const newDraws = result === 'draw' ? current.draws + 1 : current.draws;
+      const defeated =
+        result === 'win' && !current.defeatedBots.includes(botId)
+          ? [...current.defeatedBots, botId]
+          : current.defeatedBots;
 
-      const xpGain = isWin ? 100 : isDraw ? 40 : 20;
+      if (result === 'win') {
+        setTimeout(() => triggerAchievement('bot_slayer_1'), 400);
+      }
 
       return {
         ...prev,
         botRecord: {
-          wins: prev.botRecord.wins + (isWin ? 1 : 0),
-          losses: prev.botRecord.losses + (!isWin && !isDraw ? 1 : 0),
-          draws: prev.botRecord.draws + (isDraw ? 1 : 0),
+          wins: newWins,
+          losses: newLosses,
+          draws: newDraws,
           defeatedBots: defeated,
         },
-        xp: prev.xp + xpGain,
-        level: calculateLevel(prev.xp + xpGain),
+        xp: prev.xp + (result === 'win' ? 60 : result === 'draw' ? 30 : 15),
       };
     });
-
-    if (result === 'win') {
-      triggerAchievement('bot_slayer_1');
-    }
   };
 
   const resetProgress = () => {
-    if (window.confirm('Are you sure you want to reset your chess learning progress?')) {
+    if (window.confirm('Are you sure you want to reset your academy rating and progress?')) {
       setProgress(INITIAL_PROGRESS);
-      localStorage.removeItem(STORAGE_KEY);
+      try {
+        localStorage.removeItem(STORAGE_KEY);
+      } catch {
+        // ignore
+      }
+      showToast('Progress Reset', 'Your academy record has been restored to factory baseline.', 'rotate-ccw');
     }
   };
 
@@ -313,11 +324,11 @@ export const ProgressProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         studyOpening,
         studyMasterGame,
         recordBotGame,
+        resetProgress,
         soundEnabled,
         toggleSound,
         recentToast,
         clearToast: () => setRecentToast(null),
-        resetProgress,
       }}
     >
       {children}

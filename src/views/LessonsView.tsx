@@ -8,7 +8,6 @@ import {
   Sparkles,
   ArrowRight,
   BookOpen,
-  Award,
   ChevronLeft,
 } from 'lucide-react';
 import { Lesson, LessonCategory } from '../types/chess';
@@ -110,7 +109,7 @@ export const LessonsView: React.FC = () => {
         sounds.playMistake();
         setFeedback({
           type: 'wrong',
-          message: 'Not quite the best move here. Think about the lesson goal or click "Need a Hint"!',
+          message: 'Not quite the optimal continuation. Look for the most forcing, high-impact square.',
         });
       }
     } catch {
@@ -121,18 +120,14 @@ export const LessonsView: React.FC = () => {
   const handleNextStep = () => {
     if (!selectedLesson) return;
 
-    const nextIdx = currentStepIdx + 1;
-    if (nextIdx < selectedLesson.steps.length) {
+    if (currentStepIdx + 1 < selectedLesson.steps.length) {
+      const nextIdx = currentStepIdx + 1;
       setCurrentStepIdx(nextIdx);
       loadStep(selectedLesson, nextIdx);
     } else {
-      // Completed all steps of this lesson!
+      // Completed entire lesson
       completeLesson(selectedLesson.id, selectedLesson.xpReward);
-      sounds.playSuccess();
-      setFeedback({
-        type: 'correct',
-        message: `Outstanding! You have mastered "${selectedLesson.title}" and earned +${selectedLesson.xpReward} XP!`,
-      });
+      setSelectedLesson(null);
     }
   };
 
@@ -149,21 +144,21 @@ export const LessonsView: React.FC = () => {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-6 animate-in fade-in">
       {/* Top Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-stone-800">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-wood-750">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-black text-white flex items-center gap-2.5">
-            <GraduationCap className="w-7 h-7 text-amber-400" />
+          <h1 className="font-serif text-2xl sm:text-3xl font-bold text-wood-100 flex items-center gap-2.5">
+            <GraduationCap className="w-7 h-7 text-brass" />
             <span>Chess Academy</span>
           </h1>
-          <p className="text-stone-400 text-sm mt-1">
-            Master essential tactics, positional strategy, and crucial endgame techniques through hands-on board practice.
+          <p className="text-wood-400 text-xs sm:text-sm mt-1 font-sans">
+            Master tactical patterns, positional geometry, and crucial endgame techniques through tactile board study.
           </p>
         </div>
 
         {selectedLesson && (
           <button
             onClick={() => setSelectedLesson(null)}
-            className="self-start sm:self-auto inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-stone-800 hover:bg-stone-700 text-stone-200 text-xs font-semibold border border-stone-700 transition"
+            className="self-start sm:self-auto inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl wood-btn text-wood-200 text-xs font-serif font-bold tracking-wide border border-wood-650 transition"
           >
             <ChevronLeft className="w-4 h-4" />
             <span>All Lessons</span>
@@ -174,8 +169,8 @@ export const LessonsView: React.FC = () => {
       {/* Main Content: Either Lesson Catalog or Interactive Lesson View */}
       {!selectedLesson ? (
         <div className="space-y-6">
-          {/* Category Tabs */}
-          <div className="flex items-center gap-2 overflow-x-auto pb-1">
+          {/* Category Tabs: Tactile Wells */}
+          <div className="flex items-center gap-1.5 overflow-x-auto p-1 wood-well rounded-xl border border-wood-850">
             {[
               { id: 'all', label: 'All Lessons' },
               { id: 'tactics-basics', label: '1. Basic Tactics' },
@@ -186,10 +181,10 @@ export const LessonsView: React.FC = () => {
               <button
                 key={tab.id}
                 onClick={() => setActiveCategory(tab.id as LessonCategory | 'all')}
-                className={`px-3.5 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition ${
+                className={`px-3.5 py-1.5 rounded-lg text-xs font-serif font-bold whitespace-nowrap transition ${
                   activeCategory === tab.id
-                    ? 'bg-amber-500 text-stone-950 shadow'
-                    : 'bg-stone-800/80 hover:bg-stone-700 text-stone-300'
+                    ? 'wood-tab-active text-brass font-bold'
+                    : 'text-wood-400 hover:text-wood-200'
                 }`}
               >
                 {tab.label}
@@ -205,38 +200,38 @@ export const LessonsView: React.FC = () => {
                 <div
                   key={lesson.id}
                   onClick={() => setSelectedLesson(lesson)}
-                  className={`bg-[#24211d] border rounded-xl p-5 cursor-pointer transition-all hover:scale-[1.01] hover:border-amber-500/50 shadow-lg flex flex-col justify-between ${
-                    isDone ? 'border-emerald-600/40 bg-emerald-950/10' : 'border-stone-800'
+                  className={`wood-panel hover:wood-panel-raised rounded-2xl p-5 cursor-pointer transition-all border shadow-wood-raised flex flex-col justify-between ${
+                    isDone ? 'border-brass/40' : 'border-wood-700/70 hover:border-brass/50'
                   }`}
                 >
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
-                      <span className="text-[11px] font-bold px-2 py-0.5 rounded bg-stone-800 text-stone-300 uppercase tracking-wider">
+                      <span className="text-[10px] font-serif font-bold px-2 py-0.5 rounded wood-well text-wood-300 border border-wood-750 uppercase tracking-wider">
                         {lesson.difficulty}
                       </span>
                       {isDone ? (
-                        <span className="inline-flex items-center gap-1 text-emerald-400 text-xs font-bold">
-                          <CheckCircle2 className="w-4 h-4" />
+                        <span className="inline-flex items-center gap-1 text-brass text-xs font-serif font-bold">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-brass" />
                           <span>Mastered</span>
                         </span>
                       ) : (
-                        <span className="text-xs font-semibold text-amber-400">
+                        <span className="text-xs font-mono font-bold text-brass">
                           +{lesson.xpReward} XP
                         </span>
                       )}
                     </div>
 
-                    <h3 className="text-lg font-bold text-white group-hover:text-amber-400">
+                    <h3 className="font-serif text-lg font-bold text-wood-100 group-hover:text-brass transition">
                       {lesson.title}
                     </h3>
 
-                    <p className="text-xs text-stone-400 leading-relaxed line-clamp-3">
+                    <p className="text-xs text-wood-400 leading-relaxed font-sans line-clamp-3">
                       {lesson.summary}
                     </p>
                   </div>
 
-                  <div className="pt-4 border-t border-stone-800 mt-4 flex items-center justify-between text-xs font-bold text-amber-400">
-                    <span>{lesson.steps.length} Board Exercises</span>
+                  <div className="pt-4 border-t border-wood-750 mt-4 flex items-center justify-between text-xs font-serif font-bold text-brass">
+                    <span className="font-mono text-wood-400 font-normal">{lesson.steps.length} Board Exercises</span>
                     <span className="flex items-center gap-1 group-hover:translate-x-1 transition-transform">
                       {isDone ? 'Practice Again' : 'Start Lesson'} &rarr;
                     </span>
@@ -263,12 +258,12 @@ export const LessonsView: React.FC = () => {
 
             {/* Step Controls Bar */}
             <div className="w-full max-w-[540px] mt-4 flex items-center justify-between px-2 text-xs">
-              <span className="text-stone-400 font-medium">
+              <span className="font-serif text-wood-400 font-medium">
                 Exercise {currentStepIdx + 1} of {selectedLesson.steps.length}
               </span>
               <button
                 onClick={handleResetStep}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-stone-800 hover:bg-stone-700 text-stone-300 hover:text-white font-medium transition"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg wood-btn text-wood-300 hover:text-wood-100 text-xs font-medium transition"
               >
                 <RotateCcw className="w-3.5 h-3.5" />
                 <span>Reset Position</span>
@@ -277,75 +272,75 @@ export const LessonsView: React.FC = () => {
           </div>
 
           {/* Right: Theory, Instructions, Feedback & Hints */}
-          <div className="lg:col-span-5 space-y-5">
+          <div className="lg:col-span-5 space-y-4">
             {/* Lesson Title & Concept Box */}
-            <div className="bg-[#24211d] border border-stone-800 rounded-xl p-5 shadow-lg space-y-3">
+            <div className="wood-panel border border-wood-700 rounded-xl p-5 shadow-wood-raised space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-amber-400 uppercase tracking-wider">
+                <span className="text-[10px] font-serif font-bold text-brass uppercase tracking-wider">
                   {selectedLesson.difficulty} • Step {currentStepIdx + 1}/{selectedLesson.steps.length}
                 </span>
-                <span className="text-xs font-semibold text-stone-400">
+                <span className="text-xs font-mono font-bold text-wood-400">
                   +{selectedLesson.xpReward} XP
                 </span>
               </div>
 
-              <h2 className="text-xl font-black text-white">{selectedLesson.title}</h2>
+              <h2 className="font-serif text-xl font-bold text-wood-100">{selectedLesson.title}</h2>
 
-              <p className="text-xs sm:text-sm text-stone-300 leading-relaxed">
+              <p className="text-xs sm:text-sm text-wood-300 leading-relaxed font-sans">
                 {selectedLesson.conceptIntro}
               </p>
 
               {/* Golden Rule Callout */}
-              <div className="p-3 bg-amber-500/10 border-l-4 border-amber-500 rounded-r-lg">
-                <div className="flex items-center gap-1.5 text-xs font-bold text-amber-400 uppercase tracking-wider mb-1">
-                  <Lightbulb className="w-3.5 h-3.5" />
-                  <span>Grandmaster Rule</span>
+              <div className="p-3.5 wood-well border-l-4 border-brass rounded-r-xl border border-wood-800 shadow-wood-inset">
+                <div className="flex items-center gap-1.5 text-xs font-serif font-bold text-brass uppercase tracking-wider mb-1">
+                  <Lightbulb className="w-3.5 h-3.5 text-brass" />
+                  <span>Grandmaster Maxim</span>
                 </div>
-                <p className="text-xs text-stone-200 font-medium italic">
+                <p className="text-xs text-wood-200 font-serif italic">
                   "{selectedLesson.keyRule}"
                 </p>
               </div>
             </div>
 
             {/* Task Instruction Box */}
-            <div className="bg-[#1e1c18] border border-stone-800 rounded-xl p-5 space-y-4 shadow-lg">
-              <div className="flex items-center gap-2 text-stone-400 text-xs uppercase font-bold tracking-wider">
-                <BookOpen className="w-4 h-4 text-emerald-400" />
+            <div className="wood-panel-raised border border-wood-650 rounded-xl p-5 space-y-4 shadow-wood-raised-lg">
+              <div className="flex items-center gap-2 text-wood-400 text-xs font-serif uppercase font-bold tracking-wider">
+                <BookOpen className="w-4 h-4 text-brass" />
                 <span>Your Objective</span>
               </div>
 
-              <p className="text-sm font-semibold text-white leading-relaxed">
+              <p className="text-sm font-serif font-bold text-wood-100 leading-relaxed">
                 {currentStep?.instruction}
               </p>
 
               {/* Feedback Alert if move was attempted */}
               {feedback.type && (
                 <div
-                  className={`p-3.5 rounded-lg border text-xs leading-relaxed animate-in fade-in ${
+                  className={`p-3.5 rounded-xl border text-xs leading-relaxed wood-well shadow-wood-inset animate-in fade-in ${
                     feedback.type === 'correct'
-                      ? 'bg-emerald-950/40 border-emerald-600/50 text-emerald-200'
-                      : 'bg-rose-950/40 border-rose-600/50 text-rose-200'
+                      ? 'border-brass/50 text-wood-100'
+                      : 'border-rose-900/50 text-rose-200'
                   }`}
                 >
-                  <div className="font-bold mb-1 flex items-center gap-1.5">
+                  <div className="font-serif font-bold mb-1 flex items-center gap-1.5">
                     {feedback.type === 'correct' ? (
                       <>
-                        <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                        <CheckCircle2 className="w-4 h-4 text-brass" />
                         <span>Move Found!</span>
                       </>
                     ) : (
                       <span>Keep calculating!</span>
                     )}
                   </div>
-                  <div>{feedback.message}</div>
+                  <div className="font-sans">{feedback.message}</div>
                 </div>
               )}
 
               {/* Hint Box */}
               {showHint && currentStep?.hint && (
-                <div className="p-3 rounded-lg bg-amber-950/30 border border-amber-600/40 text-xs text-amber-200 space-y-1 animate-in fade-in">
-                  <span className="font-bold flex items-center gap-1">
-                    <Sparkles className="w-3.5 h-3.5 text-amber-400" /> Coach Hint:
+                <div className="p-3.5 rounded-xl wood-well border border-brass/40 text-xs text-brass space-y-1 shadow-wood-inset animate-in fade-in font-sans">
+                  <span className="font-serif font-bold flex items-center gap-1">
+                    <Sparkles className="w-3.5 h-3.5 text-brass" /> Coach Hint:
                   </span>
                   <p>{currentStep.hint}</p>
                 </div>
@@ -356,7 +351,7 @@ export const LessonsView: React.FC = () => {
                 {!stepSolved ? (
                   <button
                     onClick={() => setShowHint(true)}
-                    className="flex-1 py-2.5 px-4 rounded-xl bg-stone-800 hover:bg-stone-700 text-amber-400 font-bold text-xs border border-stone-700 flex items-center justify-center gap-1.5 transition"
+                    className="flex-1 py-2.5 px-4 rounded-xl wood-btn text-brass font-serif font-bold text-xs border border-brass/30 flex items-center justify-center gap-1.5 transition"
                   >
                     <Lightbulb className="w-4 h-4" />
                     <span>Need a Hint?</span>
@@ -364,7 +359,7 @@ export const LessonsView: React.FC = () => {
                 ) : (
                   <button
                     onClick={handleNextStep}
-                    className="flex-1 py-2.5 px-4 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 text-stone-950 font-bold text-xs shadow-lg transition flex items-center justify-center gap-1.5"
+                    className="flex-1 py-2.5 px-4 rounded-xl wood-btn-brass text-wood-950 font-serif font-bold text-xs uppercase tracking-wider shadow-brass-raised transition flex items-center justify-center gap-1.5"
                   >
                     <span>
                       {currentStepIdx + 1 < selectedLesson.steps.length

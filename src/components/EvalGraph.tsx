@@ -32,13 +32,13 @@ export const EvalGraph: React.FC<EvalGraphProps> = ({ plies, startEval, currentP
   return (
     <svg
       viewBox={`0 0 ${W} ${H}`}
-      className="w-full h-auto block rounded-lg cursor-pointer bg-[#3a3631] border border-stone-700"
+      className="w-full h-auto block rounded-xl cursor-pointer bg-[#201712] border border-wood-700/80 shadow-wood-inset"
       onClick={handleClick}
       role="img"
       aria-label="Evaluation graph"
     >
-      <path d={area} fill="#eeeeee" />
-      <line x1="0" y1={H / 2} x2={W} y2={H / 2} stroke="#888" strokeWidth="1" strokeDasharray="4 4" opacity="0.6" />
+      <path d={area} fill="#ded2bf" opacity="0.9" />
+      <line x1="0" y1={H / 2} x2={W} y2={H / 2} stroke="#856345" strokeWidth="1" strokeDasharray="4 4" opacity="0.6" />
       {plies
         .filter((p) => p.classification === 'blunder' || p.classification === 'bad' || p.classification === 'genial')
         .map((p) => (
@@ -48,12 +48,12 @@ export const EvalGraph: React.FC<EvalGraphProps> = ({ plies, startEval, currentP
             cy={y(winPercent(p.evalAfter))}
             r="4.5"
             fill={MOVE_CLASS_INFO[p.classification].color}
-            stroke="#1e1c18"
+            stroke="#201712"
             strokeWidth="1.5"
             vectorEffect="non-scaling-stroke"
           />
         ))}
-      <line x1={x(currentPly)} y1="0" x2={x(currentPly)} y2={H} stroke="#f59e0b" strokeWidth="2" vectorEffect="non-scaling-stroke" />
+      <line x1={x(currentPly)} y1="0" x2={x(currentPly)} y2={H} stroke="#d4a359" strokeWidth="2.5" vectorEffect="non-scaling-stroke" />
     </svg>
   );
 };
