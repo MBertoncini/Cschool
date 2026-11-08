@@ -84,6 +84,10 @@ export const SyncModal: React.FC<SyncModalProps> = ({ isOpen, onClose, onConnect
               <Check className="w-3.5 h-3.5 text-brass shrink-0" />
               <span>Archived Games & Analysis</span>
             </div>
+            <div className="flex items-center gap-1.5">
+              <Check className="w-3.5 h-3.5 text-brass shrink-0" />
+              <span>Piece Style</span>
+            </div>
           </div>
         </div>
 

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Chess, Square } from 'chess.js';
 import {
   GraduationCap,
@@ -31,6 +31,9 @@ export const LessonsView: React.FC = () => {
     message: '',
   });
   const [stepSolved, setStepSolved] = useState<boolean>(false);
+  // Some steps continue on a second position after the first correct move
+  const [followUpPhase, setFollowUpPhase] = useState<'none' | 'pending' | 'active'>('none');
+  const followUpTimer = useRef<number | undefined>(undefined);
 
   // Load lesson
   useEffect(() => {
@@ -38,11 +41,15 @@ export const LessonsView: React.FC = () => {
       setCurrentStepIdx(0);
       loadStep(selectedLesson, 0);
     }
+    return () => window.clearTimeout(followUpTimer.current);
   }, [selectedLesson]);
 
   const loadStep = (lesson: Lesson, stepIdx: number) => {
     const step = lesson.steps[stepIdx];
     if (!step) return;
+
+    window.clearTimeout(followUpTimer.current);
+    setFollowUpPhase('none');
 
     try {
       const g = new Chess(step.fen);
@@ -56,11 +63,13 @@ export const LessonsView: React.FC = () => {
   };
 
   const currentStep = selectedLesson ? selectedLesson.steps[currentStepIdx] : null;
+  // What the student has to play right now: the step itself or its follow-up
+  const activeTask = followUpPhase === 'active' ? currentStep?.followUpStep ?? null : currentStep;
 
   const handleUserMove = (move: { from: Square; to: Square; promotion?: string }) => {
-    if (!selectedLesson || !currentStep || stepSolved) return;
+    if (!selectedLesson || !currentStep || !activeTask || stepSolved || followUpPhase === 'pending') return;
 
-    const expected = currentStep.expectedMove;
+    const expected = activeTask.expectedMove;
     const isCorrect =
       move.from === expected.from &&
       move.to === expected.to &&
@@ -83,27 +92,22 @@ export const LessonsView: React.FC = () => {
       if (isCorrect) {
         sounds.playSuccess();
         setGame(nextGame);
-        setStepSolved(true);
+        setShowHint(false);
         setFeedback({
           type: 'correct',
-          message: currentStep.explanation,
+          message: activeTask.explanation,
         });
 
-        // Check if there is an opponent automated reply or follow-up in this step
-        if (currentStep.followUpStep) {
-          setTimeout(() => {
-            try {
-              const followUpGame = new Chess(currentStep.followUpStep!.fen);
-              setGame(followUpGame);
-              setStepSolved(false);
-              setFeedback({
-                type: null,
-                message: currentStep.followUpStep!.instruction,
-              });
-            } catch {
-              // ignore
-            }
-          }, 1200);
+        const followUp = followUpPhase === 'none' ? currentStep.followUpStep : undefined;
+        if (followUp) {
+          // Show the opponent's reply, then hand the board back for the second move
+          setFollowUpPhase('pending');
+          followUpTimer.current = window.setTimeout(() => {
+            setGame(new Chess(followUp.fen));
+            setFollowUpPhase('active');
+          }, 1400);
+        } else {
+          setStepSolved(true);
         }
       } else {
         sounds.playMistake();
@@ -249,11 +253,15 @@ export const LessonsView: React.FC = () => {
             <ChessBoard
               game={game}
               onMove={handleUserMove}
-              interactive={!stepSolved}
+              interactive={!stepSolved && followUpPhase !== 'pending'}
               highlightSquares={
-                showHint && currentStep?.highlightSquares ? currentStep.highlightSquares : []
+                !showHint
+                  ? []
+                  : followUpPhase === 'active' && currentStep?.followUpStep
+                    ? [currentStep.followUpStep.expectedMove.from]
+                    : currentStep?.highlightSquares ?? []
               }
-              arrow={showHint && currentStep?.arrow ? currentStep.arrow : null}
+              arrow={showHint && followUpPhase === 'none' && currentStep?.arrow ? currentStep.arrow : null}
             />
 
             {/* Step Controls Bar */}
@@ -310,7 +318,7 @@ export const LessonsView: React.FC = () => {
               </div>
 
               <p className="text-sm font-serif font-bold text-wood-100 leading-relaxed">
-                {currentStep?.instruction}
+                {activeTask?.instruction}
               </p>
 
               {/* Feedback Alert if move was attempted */}
@@ -337,12 +345,12 @@ export const LessonsView: React.FC = () => {
               )}
 
               {/* Hint Box */}
-              {showHint && currentStep?.hint && (
+              {showHint && activeTask?.hint && (
                 <div className="p-3.5 rounded-xl wood-well border border-brass/40 text-xs text-brass space-y-1 shadow-wood-inset animate-in fade-in font-sans">
                   <span className="font-serif font-bold flex items-center gap-1">
                     <Sparkles className="w-3.5 h-3.5 text-brass" /> Coach Hint:
                   </span>
-                  <p>{currentStep.hint}</p>
+                  <p>{activeTask.hint}</p>
                 </div>
               )}
 
@@ -351,7 +359,8 @@ export const LessonsView: React.FC = () => {
                 {!stepSolved ? (
                   <button
                     onClick={() => setShowHint(true)}
-                    className="flex-1 py-2.5 px-4 rounded-xl wood-btn text-brass font-serif font-bold text-xs border border-brass/30 flex items-center justify-center gap-1.5 transition"
+                    disabled={followUpPhase === 'pending'}
+                    className="flex-1 py-2.5 px-4 rounded-xl wood-btn text-brass font-serif font-bold text-xs border border-brass/30 flex items-center justify-center gap-1.5 transition disabled:opacity-40"
                   >
                     <Lightbulb className="w-4 h-4" />
                     <span>Need a Hint?</span>

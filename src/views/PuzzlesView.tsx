@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Chess, Square } from 'chess.js';
 import {
   Sparkles,
@@ -26,6 +26,13 @@ export const PuzzlesView: React.FC = () => {
   const [isSolved, setIsSolved] = useState<boolean>(false);
   const [isFailed, setIsFailed] = useState<boolean>(false);
   const [puzzleStreak, setPuzzleStreak] = useState<number>(0);
+  // Index in solutionMoves of the move being played; odd indexes are the opponent's replies
+  const [solutionIdx, setSolutionIdx] = useState<number>(0);
+  const [awaitingReply, setAwaitingReply] = useState<boolean>(false);
+  const [lastMove, setLastMove] = useState<{ from: Square; to: Square } | null>(null);
+  const replyTimer = useRef<number | undefined>(undefined);
+
+  useEffect(() => () => window.clearTimeout(replyTimer.current), []);
 
   const filteredPuzzles = PUZZLES.filter(
     (p) => activeTheme === 'all' || p.themeCategory === activeTheme
@@ -47,12 +54,25 @@ export const PuzzlesView: React.FC = () => {
     setShowHint(false);
     setIsSolved(false);
     setIsFailed(false);
+    window.clearTimeout(replyTimer.current);
+    setSolutionIdx(0);
+    setAwaitingReply(false);
+    setLastMove(null);
+  };
+
+  const markSolved = () => {
+    sounds.playSuccess();
+    setIsSolved(true);
+    setIsFailed(false);
+    setPuzzleStreak((s) => s + 1);
+    recordPuzzleResult(currentPuzzle.id, true, 15);
   };
 
   const handleMove = (move: { from: Square; to: Square; promotion?: string }) => {
-    if (isSolved) return;
+    if (isSolved || awaitingReply) return;
 
-    const expected = currentPuzzle.solutionMoves[0];
+    const solution = currentPuzzle.solutionMoves;
+    const expected = solution[solutionIdx];
     const isCorrect = move.from === expected.from && move.to === expected.to;
 
     try {
@@ -67,10 +87,27 @@ export const PuzzlesView: React.FC = () => {
 
       if (isCorrect) {
         setGame(nextGame);
-        setIsSolved(true);
+        setLastMove({ from: move.from, to: move.to });
         setIsFailed(false);
-        setPuzzleStreak((s) => s + 1);
-        recordPuzzleResult(currentPuzzle.id, true, 15);
+        setShowHint(false);
+
+        const reply = solution[solutionIdx + 1];
+        if (!reply) {
+          markSolved();
+        } else {
+          // The line continues: play the forced reply, then it's the solver's turn again
+          sounds.playMove();
+          setAwaitingReply(true);
+          replyTimer.current = window.setTimeout(() => {
+            const afterReply = new Chess(nextGame.fen());
+            afterReply.move({ from: reply.from, to: reply.to, promotion: reply.promotion });
+            sounds.playMove();
+            setGame(afterReply);
+            setLastMove({ from: reply.from, to: reply.to });
+            setSolutionIdx(solutionIdx + 2);
+            setAwaitingReply(false);
+          }, 600);
+        }
       } else {
         sounds.playMistake();
         setIsFailed(true);
@@ -169,10 +206,11 @@ export const PuzzlesView: React.FC = () => {
             game={game}
             onMove={handleMove}
             orientation={currentPuzzle.turn === 'w' ? 'white' : 'black'}
-            interactive={!isSolved}
+            interactive={!isSolved && !awaitingReply}
+            lastMove={lastMove}
             highlightSquares={
-              showHint && currentPuzzle.solutionMoves[0]
-                ? [currentPuzzle.solutionMoves[0].from]
+              showHint && !awaitingReply && currentPuzzle.solutionMoves[solutionIdx]
+                ? [currentPuzzle.solutionMoves[solutionIdx].from]
                 : []
             }
           />

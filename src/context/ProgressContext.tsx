@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { UserProgress, Achievement } from '../types/chess';
+import { UserProgress, Achievement, PieceSetId } from '../types/chess';
 import { sounds } from '../engine/sound';
 import { mergeProgress, sameProgress } from '../lib/githubSync';
 
@@ -86,6 +86,7 @@ interface ProgressContextType {
   recordBotGame: (botId: string, result: 'win' | 'loss' | 'draw') => void;
   resetProgress: (onResetConfirmed?: () => void) => void;
   applyRemoteProgress: (remote: UserProgress) => void;
+  setPieceSet: (id: PieceSetId) => void;
   soundEnabled: boolean;
   toggleSound: () => void;
   recentToast: { title: string; message: string; icon?: string } | null;
@@ -320,10 +321,23 @@ export const ProgressProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     });
   }, []);
 
+  // Leaves updatedAt alone: it decides which device's tactics rating wins, and this isn't a rating change
+  const setPieceSet = (id: PieceSetId) => {
+    setProgress((prev) => {
+      if (prev.pieceSet === id) return prev;
+      // Always newer than the last choice seen, even if another device's clock runs ahead
+      const lastSeen = Date.parse(prev.pieceSetUpdatedAt ?? '') || 0;
+      const pieceSetUpdatedAt = new Date(Math.max(Date.now(), lastSeen + 1)).toISOString();
+      return { ...prev, pieceSet: id, pieceSetUpdatedAt };
+    });
+  };
+
   const resetProgress = (onResetConfirmed?: () => void) => {
     if (window.confirm('Are you sure you want to reset your academy rating and progress?')) {
       const fresh: UserProgress = {
         ...INITIAL_PROGRESS,
+        pieceSet: progress.pieceSet,
+        pieceSetUpdatedAt: progress.pieceSetUpdatedAt,
         lastActiveDate: new Date().toISOString().split('T')[0],
         updatedAt: new Date().toISOString(),
       };
@@ -352,6 +366,7 @@ export const ProgressProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         recordBotGame,
         resetProgress,
         applyRemoteProgress,
+        setPieceSet,
         soundEnabled,
         toggleSound,
         recentToast,

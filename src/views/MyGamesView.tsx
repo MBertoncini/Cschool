@@ -34,8 +34,9 @@ export const MyGamesView: React.FC<MyGamesViewProps> = ({ onSelectGame, onNaviga
     // Filter by outcome
     if (filterResult !== 'all') {
       const isWhite = g.playerColor === 'w';
-      const won = (g.result === '1-0' && isWhite) || (g.result === '0-1' && !isWhite);
-      const lost = (g.result === '0-1' && isWhite) || (g.result === '1-0' && !isWhite);
+      // Two-player games have no "you": they are neither victories nor defeats
+      const won = Boolean(g.botId) && ((g.result === '1-0' && isWhite) || (g.result === '0-1' && !isWhite));
+      const lost = Boolean(g.botId) && ((g.result === '0-1' && isWhite) || (g.result === '1-0' && !isWhite));
       const drew = g.result === '1/2-1/2';
 
       if (filterResult === 'win' && !won) return false;
@@ -61,6 +62,13 @@ export const MyGamesView: React.FC<MyGamesViewProps> = ({ onSelectGame, onNaviga
       return (
         <span className="text-[10px] font-serif font-bold uppercase tracking-wider px-2 py-0.5 rounded wood-well text-brass border border-brass/30">
           In Progress
+        </span>
+      );
+    }
+    if (!game.botId) {
+      return (
+        <span className="text-[10px] font-serif font-bold uppercase tracking-wider px-2 py-0.5 rounded wood-well text-wood-300 border border-wood-700">
+          2 Players
         </span>
       );
     }

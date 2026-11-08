@@ -9,6 +9,7 @@ import { OpeningsView } from './views/OpeningsView';
 import { GMDecoderView } from './views/GMDecoderView';
 import { PuzzlesView } from './views/PuzzlesView';
 import { PlayBotView } from './views/PlayBotView';
+import { LocalGameView } from './views/LocalGameView';
 import { MyGamesView } from './views/MyGamesView';
 import { GameReviewView } from './views/GameReviewView';
 import { ProfileView } from './views/ProfileView';
@@ -69,6 +70,7 @@ const AppContent: React.FC = () => {
         {currentTab === 'gm-decoder' && <GMDecoderView />}
         {currentTab === 'puzzles' && <PuzzlesView />}
         {currentTab === 'play-bot' && <PlayBotView onReviewGame={handleReviewGame} />}
+        {currentTab === 'local-game' && <LocalGameView onReviewGame={handleReviewGame} />}
         {currentTab === 'my-games' &&
           (reviewGameId ? (
             <GameReviewView

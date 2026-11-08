@@ -17,6 +17,7 @@ import { useGames } from '../context/GamesContext';
 import { LESSONS } from '../data/lessons';
 import { OPENINGS } from '../data/openings';
 import { ChessPiece } from '../components/ChessPieces';
+import { PieceSetPicker } from '../components/PieceSetPicker';
 import { AchievementIcon } from '../components/ChessIcons';
 import { SyncModal } from '../components/SyncModal';
 
@@ -146,6 +147,19 @@ export const ProfileView: React.FC = () => {
           <span className="text-[10px] text-wood-400 font-serif font-bold uppercase tracking-wider block mt-1">
             Archived Matches
           </span>
+        </div>
+      </div>
+
+      {/* Piece Style */}
+      <div className="wood-panel rounded-2xl p-5 shadow-wood-raised border border-wood-700 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+        <div>
+          <h3 className="text-sm font-serif font-bold text-wood-100">Piece Style</h3>
+          <p className="text-xs text-wood-400 mt-1 max-w-md leading-relaxed">
+            Your choice is remembered here and follows you to your other devices when GitHub sync is connected.
+          </p>
+        </div>
+        <div className="w-full md:w-96 shrink-0">
+          <PieceSetPicker />
         </div>
       </div>
 

@@ -184,6 +184,16 @@ export function isDefaultProgress(p?: UserProgress | null): boolean {
 
 export function mergeProgress(local: UserProgress, remote?: UserProgress | null): UserProgress {
   if (!remote) return local;
+  // A preference is not progress: the latest choice wins whichever side has the better stats
+  const latest = (remote.pieceSetUpdatedAt || '') > (local.pieceSetUpdatedAt || '') ? remote : local;
+  return {
+    ...mergeStats(local, remote),
+    pieceSet: latest.pieceSet,
+    pieceSetUpdatedAt: latest.pieceSetUpdatedAt,
+  };
+}
+
+function mergeStats(local: UserProgress, remote: UserProgress): UserProgress {
   if (isDefaultProgress(local) && !isDefaultProgress(remote)) return remote;
   if (isDefaultProgress(remote) && !isDefaultProgress(local)) return local;
 
@@ -272,6 +282,7 @@ export function sameProgress(a?: UserProgress | null, b?: UserProgress | null): 
   if ((a.tacticsRating || 1000) !== (b.tacticsRating || 1000)) return false;
   if ((a.streakDays || 1) !== (b.streakDays || 1)) return false;
   if (a.lastActiveDate !== b.lastActiveDate) return false;
+  if (a.pieceSet !== b.pieceSet || a.pieceSetUpdatedAt !== b.pieceSetUpdatedAt) return false;
 
   const aBot = a.botRecord || { wins: 0, losses: 0, draws: 0, defeatedBots: [] };
   const bBot = b.botRecord || { wins: 0, losses: 0, draws: 0, defeatedBots: [] };

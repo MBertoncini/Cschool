@@ -1,4 +1,27 @@
-import { Chess, Move, Square } from 'chess.js';
+import { Chess, Color, Move, Square } from 'chess.js';
+
+/** Replays a SAN move list from the initial position (keeps history for repetition checks). */
+export function buildGame(moves: string[]): Chess {
+  const g = new Chess();
+  for (const m of moves) g.move(m);
+  return g;
+}
+
+export function drawReason(g: Chess): string {
+  if (g.isStalemate()) return 'Draw by Stalemate.';
+  if (g.isThreefoldRepetition()) return 'Draw by Threefold Repetition.';
+  if (g.isInsufficientMaterial()) return 'Draw by Insufficient Material.';
+  return 'Draw by 50-move rule.';
+}
+
+/** Can `color` still deliver mate? Decides win or draw when the opponent runs out of time. */
+export function canStillMate(g: Chess, color: Color): boolean {
+  const others = g.board().flat().filter((p) => p !== null && p.type !== 'k');
+  const own = others.filter((p) => p?.color === color);
+  if (own.length === 0) return false;
+  const loneMinor = own.length === 1 && (own[0]?.type === 'n' || own[0]?.type === 'b');
+  return !loneMinor || others.length > own.length;
+}
 
 // Piece baseline values
 const PIECE_VALUES: Record<string, number> = {
