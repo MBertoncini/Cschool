@@ -377,7 +377,7 @@ export const ChessBoard: React.FC<ChessBoardProps> = ({
                     <button
                       key={p}
                       onClick={() => handlePromotionSelect(p)}
-                      className="w-14 h-14 wood-btn rounded-xl flex items-center justify-center p-2.5 border border-wood-650 hover:border-brass transition"
+                      className="w-14 h-14 bg-[#b58a5a] hover:bg-[#c79c6c] rounded-xl flex items-center justify-center p-2 border border-wood-650 hover:border-brass transition"
                     >
                       <ChessPiece type={p} color={game.turn()} />
                     </button>

@@ -9,7 +9,7 @@ import { explainMove } from './botEngine';
 
 export const ANALYSIS_VERSION = 1;
 const PV_PLIES = 10;
-const MATED_CP = 100000;
+export const MATED_CP = 100000;
 
 // ─── Move classes ──────────────────────────────────────────────────────────
 

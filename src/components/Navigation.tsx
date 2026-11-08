@@ -6,6 +6,7 @@ import {
   Sparkles,
   Bot,
   User,
+  Users,
   Volume2,
   VolumeX,
   Flame,
@@ -24,13 +25,14 @@ interface NavigationProps {
 export const Navigation: React.FC<NavigationProps> = ({ currentTab, onSelectTab }) => {
   const { progress, soundEnabled, toggleSound } = useProgress();
 
-  const navItems: { id: TabType; label: string; icon: React.ReactNode; badge?: string }[] = [
+  const navItems: { id: TabType; label: string; icon: React.ReactNode }[] = [
     { id: 'dashboard', label: 'Hall', icon: <LayoutDashboard className="w-4 h-4" /> },
     { id: 'lessons', label: 'Academy', icon: <GraduationCap className="w-4 h-4" /> },
     { id: 'openings', label: 'Openings', icon: <BookOpen className="w-4 h-4" /> },
-    { id: 'gm-decoder', label: 'GM Decoder', icon: <Crown className="w-4 h-4 text-brass" />, badge: 'Master' },
+    { id: 'gm-decoder', label: 'GM Decoder', icon: <Crown className="w-4 h-4 text-brass" /> },
     { id: 'puzzles', label: 'Tactics', icon: <Sparkles className="w-4 h-4 text-wood-200" /> },
     { id: 'play-bot', label: 'Sparring', icon: <Bot className="w-4 h-4" /> },
+    { id: 'local-game', label: 'Duel', icon: <Users className="w-4 h-4" /> },
     { id: 'my-games', label: 'Archives', icon: <History className="w-4 h-4 text-brass" /> },
     { id: 'profile', label: 'Record', icon: <User className="w-4 h-4" /> },
   ];
@@ -54,7 +56,7 @@ export const Navigation: React.FC<NavigationProps> = ({ currentTab, onSelectTab 
               <span className="font-serif text-lg font-bold tracking-wide text-wood-100 group-hover:text-brass transition-colors">
                 ChessMaster
               </span>
-              <span className="text-[10px] font-bold font-sans px-2 py-0.5 rounded-md wood-well text-brass border border-brass/30 uppercase tracking-widest">
+              <span className="xl:hidden text-[10px] font-bold font-sans px-2 py-0.5 rounded-md wood-well text-brass border border-brass/30 uppercase tracking-widest">
                 Academy
               </span>
             </div>
@@ -65,14 +67,14 @@ export const Navigation: React.FC<NavigationProps> = ({ currentTab, onSelectTab 
         </div>
 
         {/* Center Navigation Links: Neuromorphic Wood Tabs */}
-        <nav className="hidden lg:flex items-center gap-1.5 p-1 wood-well rounded-xl">
+        <nav className="hidden xl:flex items-center gap-1 p-1 wood-well rounded-xl">
           {navItems.map((item) => {
             const isActive = currentTab === item.id;
             return (
               <button
                 key={item.id}
                 onClick={() => onSelectTab(item.id)}
-                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold tracking-wide transition-all ${
+                className={`flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-xs font-semibold tracking-wide whitespace-nowrap transition-all ${
                   isActive
                     ? 'wood-tab-active font-bold text-brass'
                     : 'wood-tab-inactive'
@@ -80,11 +82,6 @@ export const Navigation: React.FC<NavigationProps> = ({ currentTab, onSelectTab 
               >
                 {item.icon}
                 <span>{item.label}</span>
-                {item.badge && (
-                  <span className="text-[9px] uppercase font-bold px-1.5 py-0.2 rounded wood-btn-brass text-wood-950 leading-none">
-                    {item.badge}
-                  </span>
-                )}
               </button>
             );
           })}
@@ -95,7 +92,9 @@ export const Navigation: React.FC<NavigationProps> = ({ currentTab, onSelectTab 
           {/* Daily Streak */}
           <div className="hidden sm:flex items-center gap-1.5 px-3 py-1 rounded-lg wood-well border border-wood-700/60 text-brass text-xs font-semibold">
             <Flame className="w-3.5 h-3.5 text-brass" />
-            <span className="font-mono text-wood-200">{progress.streakDays}d Streak</span>
+            <span className="font-mono text-wood-200 whitespace-nowrap" title="Daily streak">
+              {progress.streakDays}d<span className="xl:hidden"> Streak</span>
+            </span>
           </div>
 
           {/* User Level & XP */}
@@ -130,7 +129,7 @@ export const Navigation: React.FC<NavigationProps> = ({ currentTab, onSelectTab 
       </div>
 
       {/* Mobile Bottom Navigation */}
-      <div className="lg:hidden flex items-center justify-around wood-well border-t border-wood-800 py-1.5 px-1 overflow-x-auto">
+      <div className="xl:hidden flex items-center justify-around wood-well border-t border-wood-800 py-1.5 px-1 overflow-x-auto">
         {navItems.map((item) => {
           const isActive = currentTab === item.id;
           return (

@@ -1,6 +1,6 @@
 import { Square, PieceSymbol, Color } from 'chess.js';
 
-export type TabType = 'dashboard' | 'lessons' | 'openings' | 'gm-decoder' | 'puzzles' | 'play-bot' | 'my-games' | 'profile';
+export type TabType = 'dashboard' | 'lessons' | 'openings' | 'gm-decoder' | 'puzzles' | 'play-bot' | 'local-game' | 'my-games' | 'profile';
 
 export type LessonCategory = 'tactics-basics' | 'tactics-intermediate' | 'strategy' | 'endgames';
 
@@ -16,6 +16,7 @@ export interface LessonStep {
     instruction: string;
     explanation: string;
     expectedMove: { from: Square; to: Square; promotion?: string };
+    hint?: string;
   };
   highlightSquares?: Square[];
   arrow?: { from: Square; to: Square; color?: string };
@@ -136,6 +137,8 @@ export interface Achievement {
   unlockedAt?: string;
 }
 
+export type PieceSetId = 'bottega' | 'bauhaus' | 'tondo' | 'deco';
+
 export interface UserProgress {
   xp: number;
   level: number;
@@ -154,6 +157,9 @@ export interface UserProgress {
   streakDays: number;
   lastActiveDate: string;
   updatedAt?: string;
+  pieceSet?: PieceSetId;
+  // Separate from updatedAt: playing on another device must not overwrite a newer choice
+  pieceSetUpdatedAt?: string;
 }
 
 // ─── Game history & review ────────────────────────────────────────────────

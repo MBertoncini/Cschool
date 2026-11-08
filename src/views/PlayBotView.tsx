@@ -17,17 +17,17 @@ import { BOTS } from '../data/bots';
 import { ChessBoard } from '../components/ChessBoard';
 import { EvaluationBar } from '../components/EvaluationBar';
 import { BotAvatar } from '../components/BotAvatar';
-import { findBotMove, getEvalBarScore } from '../engine/botEngine';
+import { ClockFace, TimeControlPicker } from '../components/ChessClock';
+import { PieceSetPicker } from '../components/PieceSetPicker';
+import { NO_CLOCK, TimeControl, isTimed } from '../data/timeControls';
+import { buildGame, canStillMate, drawReason, findBotMove } from '../engine/botEngine';
+import { barScore, formatScore } from '../engine/gameAnalysis';
 import { useProgress } from '../context/ProgressContext';
 import { sounds } from '../engine/sound';
 import { useGames, newGameId } from '../context/GamesContext';
 import { GameResult } from '../types/chess';
-
-function buildGame(moves: string[]): Chess {
-  const g = new Chess();
-  for (const m of moves) g.move(m);
-  return g;
-}
+import { useChessClock } from '../hooks/useChessClock';
+import { useLiveEval } from '../hooks/useLiveEval';
 
 interface PlayBotViewProps {
   onReviewGame?: (gameId: string) => void;
@@ -42,7 +42,9 @@ export const PlayBotView: React.FC<PlayBotViewProps> = ({ onReviewGame }) => {
   const game = useMemo(() => buildGame(moves), [moves]);
   const [playerColor, setPlayerColor] = useState<'w' | 'b'>('w');
   const [isBotThinking, setIsBotThinking] = useState<boolean>(false);
-  const evalScore = useMemo(() => getEvalBarScore(game), [game]);
+  const evalScore = useLiveEval(game.fen());
+  const [timeControl, setTimeControl] = useState<TimeControl>(NO_CLOCK);
+  const timed = isTimed(timeControl);
   const moveHistory = moves;
   const lastMove = useMemo(() => {
     const h = game.history({ verbose: true }) as Move[];
@@ -70,6 +72,37 @@ export const PlayBotView: React.FC<PlayBotViewProps> = ({ onReviewGame }) => {
     winner: 'player' | 'bot' | 'draw' | null;
     reason: string;
   }>({ over: false, winner: null, reason: '' });
+
+  // Lets a pending bot move notice that the game ended while it was "thinking"
+  const gameOverRef = useRef(false);
+  gameOverRef.current = gameResult.over;
+
+  const handleFlag = (loser: 'w' | 'b') => {
+    if (gameOverRef.current) return;
+    setIsBotThinking(false);
+    const playerLost = loser === playerColor;
+
+    if (!canStillMate(game, loser === 'w' ? 'b' : 'w')) {
+      recordBotGame(selectedBot.id, 'draw');
+      setGameResult({ over: true, winner: 'draw', reason: 'Draw: time ran out, but the opponent cannot mate.' });
+      return;
+    }
+
+    const quotes = playerLost ? selectedBot.quotes.onWin : selectedBot.quotes.onLoss;
+    const quote = quotes[Math.floor(Math.random() * quotes.length)];
+    if (quote) setBotSpeech(quote);
+
+    if (playerLost) sounds.playMistake();
+    else sounds.playSuccess();
+    recordBotGame(selectedBot.id, playerLost ? 'loss' : 'win');
+    setGameResult({
+      over: true,
+      winner: playerLost ? 'bot' : 'player',
+      reason: playerLost ? 'You ran out of time.' : `${selectedBot.name} ran out of time. You won!`,
+    });
+  };
+
+  const clock = useChessClock(timeControl, handleFlag);
 
   // Persist the game (synced to GitHub when connected) every time it changes
   useEffect(() => {
@@ -100,11 +133,17 @@ export const PlayBotView: React.FC<PlayBotViewProps> = ({ onReviewGame }) => {
   }, [moves, gameResult, upsertGame]);
 
   // Reset or start match
-  const startNewMatch = (bot: BotPersonality = selectedBot, color: 'w' | 'b' = playerColor) => {
+  const startNewMatch = (
+    bot: BotPersonality = selectedBot,
+    color: 'w' | 'b' = playerColor,
+    tc: TimeControl = timeControl
+  ) => {
     matchRef.current = { id: newGameId(), createdAt: new Date().toISOString(), bot, color };
     setMoves([]);
     setSelectedBot(bot);
     setPlayerColor(color);
+    setTimeControl(tc);
+    clock.reset(tc);
     setCoachHint(null);
     setIsBotThinking(false);
     setGameResult({ over: false, winner: null, reason: '' });
@@ -114,12 +153,13 @@ export const PlayBotView: React.FC<PlayBotViewProps> = ({ onReviewGame }) => {
 
     // If bot plays White, bot moves first
     if (color === 'b') {
-      triggerBotTurn([], bot);
+      triggerBotTurn([], bot, isTimed(tc));
     }
   };
 
   const checkGameEnd = (currentG: Chess): boolean => {
     if (currentG.isGameOver()) {
+      clock.stop();
       let winner: 'player' | 'bot' | 'draw' = 'draw';
       let reason = 'Draw.';
 
@@ -142,11 +182,7 @@ export const PlayBotView: React.FC<PlayBotViewProps> = ({ onReviewGame }) => {
           setBotSpeech(winQuote);
         }
       } else if (currentG.isDraw()) {
-        if (currentG.isStalemate()) reason = 'Draw by Stalemate.';
-        else if (currentG.isThreefoldRepetition()) reason = 'Draw by Threefold Repetition.';
-        else if (currentG.isInsufficientMaterial()) reason = 'Draw by Insufficient Material.';
-        else reason = 'Draw by 50-move rule.';
-
+        reason = drawReason(currentG);
         recordBotGame(selectedBot.id, 'draw');
       }
 
@@ -157,15 +193,16 @@ export const PlayBotView: React.FC<PlayBotViewProps> = ({ onReviewGame }) => {
   };
 
   // Bot makes a move
-  const triggerBotTurn = (currentMoves: string[], bot: BotPersonality = selectedBot) => {
+  const triggerBotTurn = (currentMoves: string[], bot: BotPersonality = selectedBot, withClock: boolean = timed) => {
     setIsBotThinking(true);
     const thisMatchId = matchRef.current.id;
 
-    const thinkTime = 400 + Math.random() * 500;
+    // On the clock the bot must not burn its time on a theatrical pause
+    const thinkTime = withClock ? 100 + Math.random() * 200 : 400 + Math.random() * 500;
 
     setTimeout(() => {
-      // Guard against stale matches
-      if (matchRef.current.id !== thisMatchId) return;
+      // Guard against stale matches and games that ended in the meantime (flag, resignation)
+      if (matchRef.current.id !== thisMatchId || gameOverRef.current) return;
 
       const g = buildGame(currentMoves);
       const botMove = findBotMove(g, bot.depth, bot.blunderRate);
@@ -201,7 +238,7 @@ export const PlayBotView: React.FC<PlayBotViewProps> = ({ onReviewGame }) => {
           if (q) setBotSpeech(q);
         }
 
-        checkGameEnd(g);
+        if (!checkGameEnd(g) && withClock) clock.press(res.color);
       } catch {
         setIsBotThinking(false);
       }
@@ -234,6 +271,7 @@ export const PlayBotView: React.FC<PlayBotViewProps> = ({ onReviewGame }) => {
 
       // Check if player's move ended the game
       if (checkGameEnd(testGame)) return true;
+      if (timed) clock.press(res.color);
 
       // Trigger bot reply
       triggerBotTurn(newMoves, selectedBot);
@@ -244,7 +282,7 @@ export const PlayBotView: React.FC<PlayBotViewProps> = ({ onReviewGame }) => {
   };
 
   const handleUndo = () => {
-    if (moves.length === 0 || isBotThinking) return;
+    if (moves.length === 0 || isBotThinking || timed) return;
     // Undo 2 plies if bot has already moved, or 1 if it's currently bot's turn
     const isPlayersTurn = game.turn() === playerColor;
     const undoCount = isPlayersTurn ? 2 : 1;
@@ -281,6 +319,8 @@ export const PlayBotView: React.FC<PlayBotViewProps> = ({ onReviewGame }) => {
 
   const handleResign = () => {
     if (gameResult.over) return;
+    clock.stop();
+    setIsBotThinking(false);
     setGameResult({ over: true, winner: 'bot', reason: 'You resigned.' });
     recordBotGame(selectedBot.id, 'loss');
     setBotSpeech(selectedBot.quotes.onWin[0] || 'A hard fought game. Honor to your struggle.');
@@ -342,17 +382,25 @@ export const PlayBotView: React.FC<PlayBotViewProps> = ({ onReviewGame }) => {
             </div>
 
             {/* In-character speech bubble: Tactile Inset Tray */}
-            <div className="hidden sm:flex items-center gap-2 wood-well border border-wood-750 rounded-xl px-3 py-1.5 max-w-xs text-xs text-wood-300 italic shadow-wood-inset">
+            <div className="hidden sm:flex items-center gap-2 wood-well border border-wood-750 rounded-xl px-3 py-1.5 max-w-xs min-w-0 mx-2 text-xs text-wood-300 italic shadow-wood-inset">
               <MessageSquare className="w-3.5 h-3.5 text-brass shrink-0" />
               <span className="line-clamp-2">{botSpeech}</span>
             </div>
+
+            {timed && (
+              <ClockFace
+                ms={clock.view[playerColor === 'w' ? 'b' : 'w']}
+                running={clock.view.active === (playerColor === 'w' ? 'b' : 'w')}
+              />
+            )}
           </div>
 
           {/* Chessboard with Eval Bar side-by-side */}
           <div className="flex items-stretch justify-center gap-3.5 w-full max-w-[580px]">
             {/* Visual Eval Bar */}
             <EvaluationBar
-              score={evalScore}
+              score={barScore(evalScore)}
+              label={formatScore(evalScore)}
               orientation={playerColor === 'w' ? 'white' : 'black'}
             />
 
@@ -396,17 +444,19 @@ export const PlayBotView: React.FC<PlayBotViewProps> = ({ onReviewGame }) => {
                 className="px-3 py-1.5 rounded-lg wood-btn text-brass font-serif font-bold text-xs border border-brass/40 transition flex items-center gap-1.5 disabled:opacity-30"
               >
                 <Lightbulb className="w-3.5 h-3.5" />
-                <span>Coach Hint</span>
+                <span className={timed ? 'hidden sm:inline' : ''}>Coach Hint</span>
               </button>
 
               <button
                 onClick={handleUndo}
-                disabled={isBotThinking || moveHistory.length === 0}
+                disabled={isBotThinking || moveHistory.length === 0 || timed}
                 className="p-1.5 rounded-lg wood-btn text-wood-300 disabled:opacity-30"
-                title="Undo Move"
+                title={timed ? 'Undo is not available in timed games' : 'Undo Move'}
               >
                 <RotateCcw className="w-4 h-4" />
               </button>
+
+              {timed && <ClockFace ms={clock.view[playerColor]} running={clock.view.active === playerColor} />}
             </div>
           </div>
         </div>
@@ -515,6 +565,19 @@ export const PlayBotView: React.FC<PlayBotViewProps> = ({ onReviewGame }) => {
                   Black
                 </button>
               </div>
+            </div>
+
+            <div className="space-y-1.5 pt-2 border-t border-wood-750">
+              <span className="text-wood-400 font-medium">Time control:</span>
+              <TimeControlPicker
+                value={timeControl}
+                onChange={(tc) => startNewMatch(selectedBot, playerColor, tc)}
+              />
+            </div>
+
+            <div className="space-y-1.5 pt-2 border-t border-wood-750">
+              <span className="text-wood-400 font-medium">Pieces:</span>
+              <PieceSetPicker />
             </div>
 
             <div className="flex items-center gap-2 pt-2 border-t border-wood-750">
