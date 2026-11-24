@@ -1,6 +1,6 @@
 import { Square, PieceSymbol, Color } from 'chess.js';
 
-export type TabType = 'dashboard' | 'lessons' | 'openings' | 'gm-decoder' | 'puzzles' | 'play-bot' | 'local-game' | 'my-games' | 'profile';
+export type TabType = 'dashboard' | 'lessons' | 'openings' | 'gm-decoder' | 'puzzles' | 'play-bot' | 'local-game' | 'analysis' | 'my-games' | 'profile';
 
 export type LessonCategory = 'tactics-basics' | 'tactics-intermediate' | 'strategy' | 'endgames';
 
