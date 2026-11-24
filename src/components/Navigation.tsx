@@ -12,6 +12,7 @@ import {
   Flame,
   LayoutDashboard,
   History,
+  Microscope,
 } from 'lucide-react';
 import { TabType } from '../types/chess';
 import { useProgress } from '../context/ProgressContext';
@@ -33,6 +34,7 @@ export const Navigation: React.FC<NavigationProps> = ({ currentTab, onSelectTab 
     { id: 'puzzles', label: 'Tactics', icon: <Sparkles className="w-4 h-4 text-wood-200" /> },
     { id: 'play-bot', label: 'Sparring', icon: <Bot className="w-4 h-4" /> },
     { id: 'local-game', label: 'Duel', icon: <Users className="w-4 h-4" /> },
+    { id: 'analysis', label: 'Analysis', icon: <Microscope className="w-4 h-4" /> },
     { id: 'my-games', label: 'Archives', icon: <History className="w-4 h-4 text-brass" /> },
     { id: 'profile', label: 'Record', icon: <User className="w-4 h-4" /> },
   ];

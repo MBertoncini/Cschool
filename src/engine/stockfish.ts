@@ -18,6 +18,8 @@ export interface AnalyzeOptions {
   depth?: number;
   multiPv?: number;
   movetime?: number; // ms cap
+  /** Called with the latest lines (sorted by multipv) every time the search reports progress. */
+  onUpdate?: (lines: RawLine[]) => void;
 }
 
 interface Job {
@@ -97,6 +99,7 @@ class StockfishEngine {
       if (kind === 'mate') raw.mate = val;
       else raw.cp = val;
       this.current.lines.set(multipv, raw);
+      this.current.job.opts.onUpdate?.([...this.current.lines.values()].sort((a, b) => a.multipv - b.multipv));
     } else if (line.startsWith('bestmove')) {
       const { job, lines } = this.current;
       this.current = null;
